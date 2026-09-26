@@ -275,4 +275,5 @@
     <include file="parts/0253_remove_unused_entity_access.xml" relativeToChangelogFile="true" />
     <include file="parts/0254_transaction_summary_reports_exclude_reage_and_fix_amortization_mapping_sign.xml" relativeToChangelogFile="true" />
     <include file="parts/0255_add_user_security_limits_operating_hours_and_office_assignments.xml" relativeToChangelogFile="true" />
+    <include file="parts/0256_add_chart_of_accounts.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

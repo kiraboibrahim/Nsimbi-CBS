@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <changeSet author="fineract" id="1">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(1) FROM acc_gl_account WHERE gl_code = '1-0-0-0-00'</sqlCheck>
+        </preConditions>
+
+        <!-- ========================================== -->
+        <!-- TIER 1: ASSETS                             -->
+        <!-- ========================================== -->
+        <insert tableName="acc_gl_account">
+            <column name="name" value="ASSETS"/>
+            <column name="gl_code" value="1-0-0-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <!-- Tier 2: Current Assets -->
+        <insert tableName="acc_gl_account">
+            <column name="name" value="CURRENT ASSETS"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-0-0-0-00')"/>
+            <column name="gl_code" value="1-1-0-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <!-- Tier 3: Cash and Cash Equivalents -->
+        <insert tableName="acc_gl_account">
+            <column name="name" value="CASH AND CASH EQUIVALENTS"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-1-0-0-00')"/>
+            <column name="gl_code" value="1-1-1-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <!-- Tier 4: Cash At Hand -->
+        <insert tableName="acc_gl_account">
+            <column name="name" value="CASH AT HAND"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-1-1-0-00')"/>
+            <column name="gl_code" value="1-1-1-1-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <!-- Tier 5: Detail Workstation/Drawer Accounts -->
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Cash In Safe"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-1-1-1-00')"/>
+            <column name="gl_code" value="1-1-1-1-1"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Teller - 1"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-1-1-1-00')"/>
+            <column name="gl_code" value="1-1-1-1-2"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Teller - 2"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-1-1-1-00')"/>
+            <column name="gl_code" value="1-1-1-1-3"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Petty Cash"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-1-1-1-00')"/>
+            <column name="gl_code" value="1-1-1-1-4"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <!-- Tier 4: Cash At Bank -->
+        <insert tableName="acc_gl_account">
+            <column name="name" value="CASH AT BANK"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-1-1-0-00')"/>
+            <column name="gl_code" value="1-1-1-2-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Main Operating Bank Account"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-1-1-2-00')"/>
+            <column name="gl_code" value="1-1-1-2-1"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <!-- Tier 3: Loans Portfolio -->
+        <insert tableName="acc_gl_account">
+            <column name="name" value="LOANS PORTFOLIO"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-1-0-0-00')"/>
+            <column name="gl_code" value="1-1-2-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="STANDARD LOANS"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-1-2-0-00')"/>
+            <column name="gl_code" value="1-1-2-1-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Active Loans Portfolio"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '1-1-2-1-00')"/>
+            <column name="gl_code" value="1-1-2-1-1"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="1"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+
+        <!-- ========================================== -->
+        <!-- TIER 1: LIABILITIES                        -->
+        <!-- ========================================== -->
+        <insert tableName="acc_gl_account">
+            <column name="name" value="LIABILITIES"/>
+            <column name="gl_code" value="2-0-0-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="2"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="CURRENT LIABILITIES"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '2-0-0-0-00')"/>
+            <column name="gl_code" value="2-1-0-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="2"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="MEMBER DEPOSITS"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '2-1-0-0-00')"/>
+            <column name="gl_code" value="2-1-1-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="2"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="SAVINGS PRODUCTS"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '2-1-1-0-00')"/>
+            <column name="gl_code" value="2-1-1-1-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="2"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="FlexSave Savings Accounts"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '2-1-1-1-00')"/>
+            <column name="gl_code" value="2-1-1-1-1"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="2"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Fixed Term Deposits"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '2-1-1-1-00')"/>
+            <column name="gl_code" value="2-1-1-1-2"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="2"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+
+        <!-- ========================================== -->
+        <!-- TIER 1: CAPITAL / EQUITY                   -->
+        <!-- ========================================== -->
+        <insert tableName="acc_gl_account">
+            <column name="name" value="CAPITAL"/>
+            <column name="gl_code" value="3-0-0-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="3"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="MEMBER EQUITY"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '3-0-0-0-00')"/>
+            <column name="gl_code" value="3-1-0-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="3"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="SHARE CAPITAL AND RESERVES"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '3-1-0-0-00')"/>
+            <column name="gl_code" value="3-1-1-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="3"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="INSTITUTIONAL CAPITAL"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '3-1-1-0-00')"/>
+            <column name="gl_code" value="3-1-1-1-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="3"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Member Share Capital"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '3-1-1-1-00')"/>
+            <column name="gl_code" value="3-1-1-1-1"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="3"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Statutory Reserve Fund"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '3-1-1-1-00')"/>
+            <column name="gl_code" value="3-1-1-1-2"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="3"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Retained Earnings"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '3-1-1-1-00')"/>
+            <column name="gl_code" value="3-1-1-1-3"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="3"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+
+        <!-- ========================================== -->
+        <!-- TIER 1: INCOME                             -->
+        <!-- ========================================== -->
+        <insert tableName="acc_gl_account">
+            <column name="name" value="INCOME"/>
+            <column name="gl_code" value="4-0-0-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="4"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="OPERATING INCOME"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '4-0-0-0-00')"/>
+            <column name="gl_code" value="4-1-0-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="4"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="FINANCIAL REVENUE"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '4-1-0-0-00')"/>
+            <column name="gl_code" value="4-1-1-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="4"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="INTEREST AND FEES"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '4-1-1-0-00')"/>
+            <column name="gl_code" value="4-1-1-1-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="4"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Loan Interest Income"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '4-1-1-1-00')"/>
+            <column name="gl_code" value="4-1-1-1-1"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="4"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Loan Fees and Fines"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '4-1-1-1-00')"/>
+            <column name="gl_code" value="4-1-1-1-2"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="4"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Account Opening Fees"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '4-1-1-1-00')"/>
+            <column name="gl_code" value="4-1-1-1-3"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="4"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Ledger Maintenance Fees"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '4-1-1-1-00')"/>
+            <column name="gl_code" value="4-1-1-1-4"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="4"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Mobile Money Commission Float"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '4-1-1-1-00')"/>
+            <column name="gl_code" value="4-1-1-1-5"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="4"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+
+        <!-- ========================================== -->
+        <!-- TIER 1: EXPENSES                           -->
+        <!-- ========================================== -->
+        <insert tableName="acc_gl_account">
+            <column name="name" value="EXPENSES"/>
+            <column name="gl_code" value="5-0-0-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="5"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="OPERATING EXPENSES"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '5-0-0-0-00')"/>
+            <column name="gl_code" value="5-1-0-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="5"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="ADMINISTRATIVE AND OPERATIONAL EXPENSES"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '5-1-0-0-00')"/>
+            <column name="gl_code" value="5-1-1-0-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="5"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="CORE OVERHEADS"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '5-1-1-0-00')"/>
+            <column name="gl_code" value="5-1-1-1-00"/>
+            <column name="account_usage" valueNumeric="1"/>
+            <column name="classification_enum" valueNumeric="5"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="false"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Personnel and Payroll"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '5-1-1-1-00')"/>
+            <column name="gl_code" value="5-1-1-1-1"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="5"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Staff Allowances"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '5-1-1-1-00')"/>
+            <column name="gl_code" value="5-1-1-1-2"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="5"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Rent Expense"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '5-1-1-1-00')"/>
+            <column name="gl_code" value="5-1-1-1-3"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="5"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Depreciation Expense"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '5-1-1-1-00')"/>
+            <column name="gl_code" value="5-1-1-1-4"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="5"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Software Licensing"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '5-1-1-1-00')"/>
+            <column name="gl_code" value="5-1-1-1-5"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="5"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="acc_gl_account">
+            <column name="name" value="Interest Expense on Deposits"/>
+            <column name="parent_id" valueComputed="(SELECT id FROM acc_gl_account WHERE gl_code = '5-1-1-1-00')"/>
+            <column name="gl_code" value="5-1-1-1-6"/>
+            <column name="account_usage" valueNumeric="2"/>
+            <column name="classification_enum" valueNumeric="5"/>
+            <column name="manual_journal_entries_allowed" valueBoolean="true"/>
+            <column name="disabled" valueBoolean="false"/>
+        </insert>
+
+    </changeSet>
+
+</databaseChangeLog>
