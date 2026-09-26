@@ -20,6 +20,7 @@ package org.apache.fineract.infrastructure.security.service;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
+import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.apache.fineract.useradministration.domain.AppUserRepository;
 import org.springframework.cache.Cache;
@@ -84,11 +85,10 @@ public class LoginAttemptEventListener {
             return;
         }
 
-        if (user.getFailedLoginAttempts() <= 0) {
-            return;
+        user.updateLastLogin(DateUtils.getAuditLocalDateTime());
+        if (user.getFailedLoginAttempts() > 0) {
+            user.resetFailedLoginAttempts();
         }
-
-        user.resetFailedLoginAttempts();
         appUserRepository.saveAndFlush(user);
         evictUserCaches();
     }

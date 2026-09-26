@@ -18,22 +18,36 @@
  */
 package org.apache.fineract.infrastructure.security.service;
 
+import lombok.RequiredArgsConstructor;
+import org.apache.fineract.useradministration.domain.AppUser;
+import org.apache.fineract.useradministration.exception.UserSuspendedException;
+import org.apache.fineract.useradministration.service.RoleOperatingHoursValidator;
 import org.springframework.security.authentication.CredentialsExpiredException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsChecker;
 import org.springframework.stereotype.Component;
 
 /**
- * Checks user details during Spring Security authentication. Password reset enforcement is handled by
- * SpringSecurityPlatformSecurityContext and AuthenticationApiResource after authentication succeeds.
+ * Checks user details during Spring Security authentication. Enforces credentials expiration, account suspension,
+ * and role operating hours.
  */
 @Component
+@RequiredArgsConstructor
 public class PlatformUserDetailsChecker implements UserDetailsChecker {
+
+    private final RoleOperatingHoursValidator roleOperatingHoursValidator;
 
     @Override
     public void check(UserDetails userDetails) {
         if (!userDetails.isCredentialsNonExpired()) {
             throw new CredentialsExpiredException("User credentials have expired");
+        }
+
+        if (userDetails instanceof AppUser appUser) {
+            if (appUser.isSuspended()) {
+                throw new UserSuspendedException();
+            }
+            this.roleOperatingHoursValidator.validateUserOperatingHours(appUser);
         }
     }
 }
