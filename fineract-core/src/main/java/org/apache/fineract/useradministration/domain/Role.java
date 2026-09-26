@@ -53,6 +53,13 @@ public class Role extends AbstractPersistableCustom<Long> implements Serializabl
     @JoinTable(name = "m_role_permission", joinColumns = @JoinColumn(name = "role_id"), inverseJoinColumns = @JoinColumn(name = "permission_id"))
     private Set<Permission> permissions = new HashSet<>();
 
+    @jakarta.persistence.OneToMany(cascade = jakarta.persistence.CascadeType.ALL, mappedBy = "role", orphanRemoval = true)
+    private Set<RoleOperatingHours> operatingHours = new HashSet<>();
+
+    public Set<RoleOperatingHours> getOperatingHours() {
+        return this.operatingHours;
+    }
+
     public static Role fromJson(final JsonCommand command) {
         final String name = command.stringValueOfParameterNamed("name");
         final String description = command.stringValueOfParameterNamed("description");

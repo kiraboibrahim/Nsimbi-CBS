@@ -20,6 +20,7 @@ package org.apache.fineract.useradministration.domain;
 
 import static org.apache.fineract.useradministration.service.AppUserConstants.PASSWORD;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -27,9 +28,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -155,6 +158,20 @@ public class AppUser extends AbstractPersistableCustom<Long> implements Platform
     @Column(name = "is_password_reset_enabled", nullable = false)
     private boolean passwordResetAllowed = false;
 
+    @Getter
+    @Column(name = "is_suspended", nullable = false)
+    private boolean isSuspended = false;
+
+    @Getter
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "appUser", orphanRemoval = true)
+    private Set<UserOfficeAssignment> officeAssignments = new HashSet<>();
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "appUser", orphanRemoval = true)
+    private Set<UserTransactionLimit> transactionLimits = new HashSet<>();
+
     public static AppUser fromJson(final Office userOffice, final Staff linkedStaff, final Set<Role> allRoles, final JsonCommand command) {
 
         final String username = command.stringValueOfParameterNamed("username");
@@ -196,6 +213,9 @@ public class AppUser extends AbstractPersistableCustom<Long> implements Platform
         appUser.updateLoginRetryLimitEnabled(resolveLoginRetryLimitEnabled(username, loginRetryLimitEnabled));
         if (command.parameterExists(AppUserConstants.IS_PASSWORD_RESET_ALLOWED)) {
             appUser.updatePasswordResetAllowed(command.booleanPrimitiveValueOfParameterNamed(AppUserConstants.IS_PASSWORD_RESET_ALLOWED));
+        }
+        if (command.parameterExists("isSuspended")) {
+            appUser.isSuspended = command.booleanPrimitiveValueOfParameterNamed("isSuspended");
         }
         return appUser;
     }
@@ -318,6 +338,12 @@ public class AppUser extends AbstractPersistableCustom<Long> implements Platform
 
         // unencoded password provided
         updatePassword(command, platformPasswordEncoder, actualChanges);
+        final String isSuspendedParamName = "isSuspended";
+        if (command.isChangeInBooleanParameterNamed(isSuspendedParamName, this.isSuspended)) {
+            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(isSuspendedParamName);
+            actualChanges.put(isSuspendedParamName, newValue);
+            this.isSuspended = newValue;
+        }
         final String officeIdParamName = "officeId";
         if (command.isChangeInLongParameterNamed(officeIdParamName, this.office.getId())) {
             final Long newValue = command.longValueOfParameterNamed(officeIdParamName);
@@ -428,6 +454,30 @@ public class AppUser extends AbstractPersistableCustom<Long> implements Platform
 
     public boolean isDeleted() {
         return this.deleted;
+    }
+
+    public void suspend() {
+        this.isSuspended = true;
+    }
+
+    public void reactivate() {
+        this.isSuspended = false;
+    }
+
+    public void updateLastLogin(final LocalDateTime loginTime) {
+        this.lastLoginAt = loginTime;
+    }
+
+    public LocalDateTime getLastLoginAt() {
+        return this.lastLoginAt;
+    }
+
+    public Set<UserOfficeAssignment> getOfficeAssignments() {
+        return this.officeAssignments;
+    }
+
+    public Set<UserTransactionLimit> getTransactionLimits() {
+        return this.transactionLimits;
     }
 
     public boolean isSystemUser() {
