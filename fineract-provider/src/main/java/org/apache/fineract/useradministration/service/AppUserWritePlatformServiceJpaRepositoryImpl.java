@@ -50,6 +50,7 @@ import org.apache.fineract.useradministration.domain.AppUserRepository;
 import org.apache.fineract.useradministration.domain.Role;
 import org.apache.fineract.useradministration.domain.RoleRepository;
 import org.apache.fineract.useradministration.domain.UserDomainService;
+import org.apache.fineract.useradministration.domain.UserOfficeAssignment;
 import org.apache.fineract.useradministration.exception.PasswordPreviouslyUsedException;
 import org.apache.fineract.useradministration.exception.RoleNotFoundException;
 import org.apache.fineract.useradministration.exception.UserNotFoundException;
@@ -109,6 +110,15 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
             AppUser appUser = AppUser.fromJson(userOffice, linkedStaff, allRoles, command);
             if (this.configurationDomainService.isForcePasswordResetOnFirstLoginEnabled()) {
                 appUser.updatePasswordResetRequired(true);
+            }
+
+            final String[] officeAssignments = command.arrayValueOfParameterNamed("officeAssignments");
+            if (officeAssignments != null && officeAssignments.length > 0) {
+                for (final String officeIdStr : officeAssignments) {
+                    final Long offId = Long.valueOf(officeIdStr);
+                    final Office assignedOffice = this.officeRepositoryWrapper.findOneWithNotFoundDetection(offId);
+                    appUser.getOfficeAssignments().add(new UserOfficeAssignment(appUser, assignedOffice));
+                }
             }
 
             final Boolean sendPasswordToEmail = command.booleanObjectValueOfParameterNamed("sendPasswordToEmail");
@@ -206,6 +216,19 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
                 final Set<Role> allRoles = assembleSetOfRoles(roleIds);
 
                 userToUpdate.updateRoles(allRoles);
+            }
+
+            if (command.parameterExists("officeAssignments")) {
+                final String[] officeAssignments = command.arrayValueOfParameterNamed("officeAssignments");
+                userToUpdate.getOfficeAssignments().clear();
+                if (officeAssignments != null && officeAssignments.length > 0) {
+                    for (final String officeIdStr : officeAssignments) {
+                        final Long offId = Long.valueOf(officeIdStr);
+                        final Office assignedOffice = this.officeRepositoryWrapper.findOneWithNotFoundDetection(offId);
+                        userToUpdate.getOfficeAssignments().add(new UserOfficeAssignment(userToUpdate, assignedOffice));
+                    }
+                }
+                changes.put("officeAssignments", officeAssignments);
             }
 
             if (!changes.isEmpty()) {

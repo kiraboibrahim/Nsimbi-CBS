@@ -56,15 +56,17 @@ public final class UserDataValidator {
     public static final String SEND_PASSWORD_TO_EMAIL = "sendPasswordToEmail";
     public static final String STAFF_ID = "staffId";
     public static final String PASSWORD_NEVER_EXPIRES = "passwordNeverExpires";
+    public static final String IS_SUSPENDED = "isSuspended";
+    public static final String OFFICE_ASSIGNMENTS = "officeAssignments";
     /**
      * The parameters supported for this command.
      */
     private static final Set<String> CREATE_SUPPORTED_PARAMETERS = new HashSet<>(Arrays.asList(USERNAME, FIRSTNAME, LASTNAME, PASSWORD,
             REPEAT_PASSWORD, EMAIL, OFFICE_ID, NOT_SELECTED_ROLES, ROLES, SEND_PASSWORD_TO_EMAIL, STAFF_ID, PASSWORD_NEVER_EXPIRES,
-            AppUserConstants.IS_LOGIN_RETRIES_ENABLED, AppUserConstants.IS_PASSWORD_RESET_ALLOWED));
+            AppUserConstants.IS_LOGIN_RETRIES_ENABLED, AppUserConstants.IS_PASSWORD_RESET_ALLOWED, IS_SUSPENDED, OFFICE_ASSIGNMENTS));
     private static final Set<String> UPDATE_SUPPORTED_PARAMETERS = new HashSet<>(Arrays.asList(USERNAME, FIRSTNAME, LASTNAME, PASSWORD,
             REPEAT_PASSWORD, EMAIL, OFFICE_ID, NOT_SELECTED_ROLES, ROLES, SEND_PASSWORD_TO_EMAIL, STAFF_ID, PASSWORD_NEVER_EXPIRES,
-            AppUserConstants.IS_LOGIN_RETRIES_ENABLED, AppUserConstants.IS_PASSWORD_RESET_ALLOWED));
+            AppUserConstants.IS_LOGIN_RETRIES_ENABLED, AppUserConstants.IS_PASSWORD_RESET_ALLOWED, IS_SUSPENDED, OFFICE_ASSIGNMENTS));
     private static final Set<String> CHANGE_PASSWORD_SUPPORTED_PARAMETERS = new HashSet<>(Arrays.asList(PASSWORD, REPEAT_PASSWORD));
     public static final String PASSWORD_NEVER_EXPIRE = "passwordNeverExpire";
 
@@ -149,6 +151,16 @@ public final class UserDataValidator {
                         .validateForBooleanValue();
             }
         }
+        if (this.fromApiJsonHelper.parameterExists(IS_SUSPENDED, element)) {
+            final Boolean isSuspended = this.fromApiJsonHelper.extractBooleanNamed(IS_SUSPENDED, element);
+            baseDataValidator.reset().parameter(IS_SUSPENDED).value(isSuspended).validateForBooleanValue();
+        }
+
+        if (this.fromApiJsonHelper.parameterExists(OFFICE_ASSIGNMENTS, element)) {
+            final String[] officeAssignments = this.fromApiJsonHelper.extractArrayNamed(OFFICE_ASSIGNMENTS, element);
+            baseDataValidator.reset().parameter(OFFICE_ASSIGNMENTS).value(officeAssignments).arrayNotEmpty();
+        }
+
         final String[] roles = this.fromApiJsonHelper.extractArrayNamed(ROLES, element);
         baseDataValidator.reset().parameter(ROLES).value(roles).arrayNotEmpty();
 
@@ -251,6 +263,16 @@ public final class UserDataValidator {
         if (this.fromApiJsonHelper.parameterExists(ROLES, element)) {
             final String[] roles = this.fromApiJsonHelper.extractArrayNamed(ROLES, element);
             baseDataValidator.reset().parameter(ROLES).value(roles).arrayNotEmpty();
+        }
+
+        if (this.fromApiJsonHelper.parameterExists(IS_SUSPENDED, element)) {
+            final Boolean isSuspended = this.fromApiJsonHelper.extractBooleanNamed(IS_SUSPENDED, element);
+            baseDataValidator.reset().parameter(IS_SUSPENDED).value(isSuspended).validateForBooleanValue();
+        }
+
+        if (this.fromApiJsonHelper.parameterExists(OFFICE_ASSIGNMENTS, element)) {
+            final String[] officeAssignments = this.fromApiJsonHelper.extractArrayNamed(OFFICE_ASSIGNMENTS, element);
+            baseDataValidator.reset().parameter(OFFICE_ASSIGNMENTS).value(officeAssignments).arrayNotEmpty();
         }
 
         if (this.fromApiJsonHelper.parameterExists(PASSWORD, element)) {
