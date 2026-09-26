@@ -20,6 +20,7 @@ package org.apache.fineract.infrastructure.security.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -117,6 +118,7 @@ class LoginAttemptEventListenerTest {
 
         assertEquals(0, user.getFailedLoginAttempts());
         assertTrue(user.isAccountNonLocked());
+        assertNotNull(user.getLastLoginAt());
         verify(appUserRepository).saveAndFlush(user);
     }
 
