@@ -836,6 +836,10 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
         return this.nominalAnnualInterestRate.divide(BigDecimal.valueOf(100L), mc);
     }
 
+    boolean calculatesClosureInterest() {
+        return hasInterestCalculation() || hasOverdraftInterestCalculation();
+    }
+
     private boolean hasInterestCalculation() {
         return !MathUtil.isEmpty(nominalAnnualInterestRate);
     }

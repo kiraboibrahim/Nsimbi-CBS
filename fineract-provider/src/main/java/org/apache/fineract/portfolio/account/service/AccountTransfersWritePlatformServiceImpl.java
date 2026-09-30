@@ -68,6 +68,7 @@ import org.apache.fineract.portfolio.loanaccount.service.adjustment.LoanAdjustme
 import org.apache.fineract.portfolio.paymentdetail.domain.PaymentDetail;
 import org.apache.fineract.portfolio.paymentdetail.service.PaymentDetailWritePlatformService;
 import org.apache.fineract.portfolio.savings.SavingsTransactionBooleanValues;
+import org.apache.fineract.portfolio.savings.domain.DepositAccountClosurePlan;
 import org.apache.fineract.portfolio.savings.domain.GSIMRepositoy;
 import org.apache.fineract.portfolio.savings.domain.GroupSavingsIndividualMonitoring;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
@@ -283,6 +284,16 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
     @Override
     @Transactional
     public Long transferFunds(final AccountTransferDTO accountTransferDTO) {
+        return transferFunds(accountTransferDTO, null);
+    }
+
+    @Override
+    @Transactional
+    public Long transferFunds(final AccountTransferDTO accountTransferDTO, DepositAccountClosurePlan.Applied closure) {
+        if (closure != null
+                && !isSavingsToSavingsAccountTransfer(accountTransferDTO.getFromAccountType(), accountTransferDTO.getToAccountType())) {
+            throw new IllegalArgumentException("Closure proceeds require a savings-to-savings transfer");
+        }
         Long transferTransactionId = null;
         final boolean isAccountTransfer = true;
         final boolean isRegularTransaction = accountTransferDTO.isRegularTransaction();
@@ -396,9 +407,13 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
                 transactionDate = transactionDate.plusDays(1);
             }
 
-            final SavingsAccountTransaction withdrawal = this.savingsAccountDomainService.handleWithdrawal(fromSavingsAccount,
-                    accountTransferDTO.getFmt(), transactionDate, accountTransferDTO.getTransactionAmount(),
-                    accountTransferDTO.getPaymentDetail(), transactionBooleanValues, backdatedTxnsAllowedTill);
+            final SavingsAccountTransaction withdrawal = closure == null
+                    ? this.savingsAccountDomainService.handleWithdrawal(fromSavingsAccount, accountTransferDTO.getFmt(), transactionDate,
+                            accountTransferDTO.getTransactionAmount(), accountTransferDTO.getPaymentDetail(), transactionBooleanValues,
+                            backdatedTxnsAllowedTill)
+                    : this.savingsAccountDomainService.handleWithdrawal(fromSavingsAccount, accountTransferDTO.getFmt(), transactionDate,
+                            accountTransferDTO.getTransactionAmount(), accountTransferDTO.getPaymentDetail(), transactionBooleanValues,
+                            backdatedTxnsAllowedTill, closure);
 
             final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(toSavingsAccount,
                     accountTransferDTO.getFmt(), transactionDate, accountTransferDTO.getTransactionAmount(),

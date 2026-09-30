@@ -40,6 +40,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
+import org.apache.fineract.commands.domain.SavingsTransactionExecutionContext;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
@@ -88,6 +89,7 @@ import org.apache.fineract.portfolio.savings.data.DepositAccountTransactionDataV
 import org.apache.fineract.portfolio.savings.data.SavingsAccountChargeDataValidator;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionDTO;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountAssembler;
+import org.apache.fineract.portfolio.savings.domain.DepositAccountClosurePlan;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountDomainService;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountOnHoldTransaction;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountOnHoldTransactionRepository;
@@ -110,6 +112,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements DepositAccountWritePlatformService {
 
     private final PlatformSecurityContext context;
+    private final DepositClosureAuthorityService closureAuthority;
     private final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper;
     private final SavingsAccountTransactionRepository savingsAccountTransactionRepository;
     private final DepositAccountAssembler depositAccountAssembler;
@@ -903,18 +906,26 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
     @Override
     public CommandProcessingResult closeFDAccount(final Long savingsId, final JsonCommand command) {
+        return closeFDAccount(savingsId, command, null);
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult closeFDAccount(final Long savingsId, final JsonCommand command,
+            SavingsTransactionExecutionContext executionContext) {
         final AppUser user = this.context.authenticatedUser();
         final boolean isPreMatureClose = false;
         this.depositAccountTransactionDataValidator.validateClosing(command, DepositAccountType.FIXED_DEPOSIT, isPreMatureClose);
 
         final Map<String, Object> changes = new LinkedHashMap<>();
-        final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
 
         final FixedDepositAccount account = (FixedDepositAccount) this.depositAccountAssembler.assembleFrom(savingsId,
                 DepositAccountType.FIXED_DEPOSIT);
         checkClientOrGroupActive(account);
 
-        this.depositAccountDomainService.handleFDAccountClosure(account, paymentDetail, user, command, changes);
+        final DepositAccountClosurePlan closurePlan = this.closureAuthority.prepare(account, command, executionContext, false);
+        final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
+        this.depositAccountDomainService.handleFDAccountClosure(account, paymentDetail, user, command, changes, closurePlan);
 
         final String noteText = command.stringValueOfParameterNamed("note");
         if (StringUtils.isNotBlank(noteText)) {
@@ -936,18 +947,26 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
     @Override
     public CommandProcessingResult closeRDAccount(final Long savingsId, final JsonCommand command) {
+        return closeRDAccount(savingsId, command, null);
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult closeRDAccount(final Long savingsId, final JsonCommand command,
+            SavingsTransactionExecutionContext executionContext) {
         final AppUser user = this.context.authenticatedUser();
 
         this.depositAccountTransactionDataValidator.validateClosing(command, DepositAccountType.RECURRING_DEPOSIT, false);
 
         final Map<String, Object> changes = new LinkedHashMap<>();
-        final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
 
         final RecurringDepositAccount account = (RecurringDepositAccount) this.depositAccountAssembler.assembleFrom(savingsId,
                 DepositAccountType.RECURRING_DEPOSIT);
         checkClientOrGroupActive(account);
 
-        this.depositAccountDomainService.handleRDAccountClosure(account, paymentDetail, user, command, changes);
+        final DepositAccountClosurePlan closurePlan = this.closureAuthority.prepare(account, command, executionContext, false);
+        final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
+        this.depositAccountDomainService.handleRDAccountClosure(account, paymentDetail, user, command, changes, closurePlan);
 
         final String noteText = command.stringValueOfParameterNamed("note");
         if (StringUtils.isNotBlank(noteText)) {
@@ -969,18 +988,26 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
     @Override
     public CommandProcessingResult prematureCloseFDAccount(final Long savingsId, final JsonCommand command) {
+        return prematureCloseFDAccount(savingsId, command, null);
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult prematureCloseFDAccount(final Long savingsId, final JsonCommand command,
+            SavingsTransactionExecutionContext executionContext) {
         final AppUser user = this.context.authenticatedUser();
 
         this.depositAccountTransactionDataValidator.validateClosing(command, DepositAccountType.FIXED_DEPOSIT, true);
 
         final Map<String, Object> changes = new LinkedHashMap<>();
-        final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
 
         final FixedDepositAccount account = (FixedDepositAccount) this.depositAccountAssembler.assembleFrom(savingsId,
                 DepositAccountType.FIXED_DEPOSIT);
         checkClientOrGroupActive(account);
 
-        this.depositAccountDomainService.handleFDAccountPreMatureClosure(account, paymentDetail, user, command, changes);
+        final DepositAccountClosurePlan closurePlan = this.closureAuthority.prepare(account, command, executionContext, true);
+        final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
+        this.depositAccountDomainService.handleFDAccountPreMatureClosure(account, paymentDetail, user, command, changes, closurePlan);
 
         final String noteText = command.stringValueOfParameterNamed("note");
         if (StringUtils.isNotBlank(noteText)) {
@@ -1002,12 +1029,18 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
     @Override
     public CommandProcessingResult prematureCloseRDAccount(final Long savingsId, final JsonCommand command) {
+        return prematureCloseRDAccount(savingsId, command, null);
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult prematureCloseRDAccount(final Long savingsId, final JsonCommand command,
+            SavingsTransactionExecutionContext executionContext) {
         final AppUser user = this.context.authenticatedUser();
 
         this.depositAccountTransactionDataValidator.validateClosing(command, DepositAccountType.RECURRING_DEPOSIT, true);
 
         final Map<String, Object> changes = new LinkedHashMap<>();
-        final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
 
         final RecurringDepositAccount account = (RecurringDepositAccount) this.depositAccountAssembler.assembleFrom(savingsId,
                 DepositAccountType.RECURRING_DEPOSIT);
@@ -1022,7 +1055,9 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             }
         }
 
-        this.depositAccountDomainService.handleRDAccountPreMatureClosure(account, paymentDetail, user, command, changes);
+        final DepositAccountClosurePlan closurePlan = this.closureAuthority.prepare(account, command, executionContext, true);
+        final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
+        this.depositAccountDomainService.handleRDAccountPreMatureClosure(account, paymentDetail, user, command, changes, closurePlan);
 
         final String noteText = command.stringValueOfParameterNamed("note");
         if (StringUtils.isNotBlank(noteText)) {

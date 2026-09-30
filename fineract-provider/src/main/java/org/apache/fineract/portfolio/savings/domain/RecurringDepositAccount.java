@@ -657,6 +657,23 @@ public class RecurringDepositAccount extends SavingsAccount {
         this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, this.transactions);
     }
 
+    public DepositAccountClosurePlan planClosureInterest(LocalDate closeDate, boolean premature, boolean postingAtPeriodEnd,
+            Integer financialYearBeginningMonth) {
+        LocalDate postingDate = premature ? closeDate : (maturityDate() == null ? closeDate : maturityDate());
+        LocalDate calculationDate = premature ? closeDate.minusDays(1) : interestPostingUpToDate(postingDate.minusDays(1));
+        return DepositAccountClosurePlan.calculate(this,
+                previewClosureInterest(closeDate, premature, postingAtPeriodEnd, financialYearBeginningMonth), postingDate, calculationDate,
+                calculateApplicableInterestRate(calculationDate, premature), premature, false, totalInterestPosted());
+    }
+
+    public void applyClosureInterest(DepositAccountClosurePlan plan, LocalDate closeDate) {
+        plan.apply(this);
+        if (plan.premature())
+            this.accountTermAndPreClosure.updateMaturityDetails(this.getAccountBalance(), closeDate);
+        else
+            this.setClosedOnDate(closeDate);
+    }
+
     public void postMaturityInterest(final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth,
             final LocalDate closeDate, final boolean postReversals) {
         LocalDate interestPostingUpToDate = maturityDate();

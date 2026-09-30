@@ -92,6 +92,17 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
     public SavingsAccountTransaction handleWithdrawal(final SavingsAccount account, final DateTimeFormatter fmt,
             final LocalDate transactionDate, final BigDecimal transactionAmount, final PaymentDetail paymentDetail,
             final SavingsTransactionBooleanValues transactionBooleanValues, final boolean backdatedTxnsAllowedTill) {
+        return handleWithdrawal(account, fmt, transactionDate, transactionAmount, paymentDetail, transactionBooleanValues,
+                backdatedTxnsAllowedTill, null);
+    }
+
+    @Transactional
+    @Override
+    public SavingsAccountTransaction handleWithdrawal(final SavingsAccount account, final DateTimeFormatter fmt,
+            final LocalDate transactionDate, final BigDecimal transactionAmount, final PaymentDetail paymentDetail,
+            final SavingsTransactionBooleanValues transactionBooleanValues, final boolean backdatedTxnsAllowedTill,
+            final DepositAccountClosurePlan.Applied closure) {
+        if (closure != null) closure.validate(account, transactionAmount, transactionDate);
         context.authenticatedUser();
         account.validateForAccountBlock();
         account.validateForDebitBlock();
@@ -123,7 +134,9 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
 
         final LocalDate today = DateUtils.getBusinessLocalDate();
 
-        if (account.isBeforeLastPostingPeriod(transactionDate, backdatedTxnsAllowedTill)) {
+        if (closure != null) {
+            closure.updateWithdrawalBalances(account);
+        } else if (account.isBeforeLastPostingPeriod(transactionDate, backdatedTxnsAllowedTill)) {
             savingsAccountPostInterestService.postInterest(account, mc, today, transactionBooleanValues.isInterestTransfer(),
                     isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, postInterestOnDate, backdatedTxnsAllowedTill,
                     postReversals);

@@ -107,9 +107,14 @@ public final class SavingsAccountSummary {
 
         updateRunningBalanceAndPivotDate(false, transactions, null, null, null, currency);
 
-        this.accountBalance = Money.of(currency, this.totalDeposits).plus(this.totalInterestPosted).minus(this.totalWithdrawals)
-                .minus(this.totalWithdrawalFees).minus(this.totalAnnualFees).minus(this.totalFeeCharge).minus(this.totalPenaltyCharge)
-                .minus(totalOverdraftInterestDerived).minus(totalWithholdTax).getAmount();
+        this.accountBalance = balanceWithPostings(currency, this.totalInterestPosted, this.totalOverdraftInterestDerived,
+                this.totalWithholdTax);
+    }
+
+    BigDecimal balanceWithPostings(MonetaryCurrency currency, BigDecimal interest, BigDecimal overdraftInterest, BigDecimal tax) {
+        return Money.of(currency, this.totalDeposits).plus(interest).minus(this.totalWithdrawals).minus(this.totalWithdrawalFees)
+                .minus(this.totalAnnualFees).minus(this.totalFeeCharge).minus(this.totalPenaltyCharge).minus(overdraftInterest).minus(tax)
+                .getAmount();
     }
 
     public void updateSummaryWithPivotConfig(final MonetaryCurrency currency, final SavingsAccountTransactionSummaryWrapper wrapper,
@@ -252,14 +257,22 @@ public final class SavingsAccountSummary {
     }
 
     public void updateFromInterestPeriodSummaries(final MonetaryCurrency currency, final List<PostingPeriod> allPostingPeriods) {
+        applyCalculatedInterestSummary(calculatedInterestTotal(currency, allPostingPeriods), DateUtils.getBusinessLocalDate());
+    }
+
+    static BigDecimal calculatedInterestTotal(MonetaryCurrency currency, List<PostingPeriod> allPostingPeriods) {
         Money totalEarned = Money.zero(currency);
         for (final PostingPeriod period : allPostingPeriods) {
             Money interestEarned = period.interest();
             interestEarned = interestEarned == null ? Money.zero(currency) : interestEarned;
             totalEarned = totalEarned.plus(interestEarned);
         }
-        this.lastInterestCalculationDate = DateUtils.getBusinessLocalDate();
-        this.totalInterestEarned = totalEarned.getAmount();
+        return totalEarned.getAmount();
+    }
+
+    void applyCalculatedInterestSummary(BigDecimal totalEarned, LocalDate calculationDate) {
+        this.lastInterestCalculationDate = calculationDate;
+        this.totalInterestEarned = totalEarned;
     }
 
     public boolean isLessThanOrEqualToAccountBalance(final Money amount) {

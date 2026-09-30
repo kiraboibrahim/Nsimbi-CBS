@@ -1,3 +1,90 @@
+# FD/RD closure proceeds authority — implementation and validation
+
+This continuation is limited to manual fixed/recurring-deposit normal and premature closure with `TRANSFER_TO_SAVINGS`. The calculation primitives are committed prerequisites and were not reimplemented. The implementation and selected regression validation are complete. This section supersedes the archived Phase 1 exclusions only for these four closure commands.
+
+## Implemented boundary
+
+- Four distinct closure kinds use the existing version-2 command envelope and server-owned STAFF_API provenance. Shared dispatch supplies the persisted original maker during approval and retry. Existing Phase 1 kind strings and deposit version-1/withdrawal version-2 formats remain unchanged. Legacy pending closure commands without trusted envelopes require cancellation/resubmission; completed history remains readable.
+- `DepositClosureAuthorityService` obtains a pessimistic source-account lock, calculates a fresh immutable plan and checks the original maker's current TRANSFER limit against exact net proceeds in source currency. Payment-detail creation and the domain financial writer follow authorization. Approval and execution retry calculate again; no calculated plan is persisted or accepted from request JSON. Non-transfer closure returns without any TRANSFER lookup and retains the existing posting path.
+- `DepositAccountClosurePlan` retains immutable scalar state, version, interest correction actions, tax component allocations, summary values and net proceeds. It consumes the committed interest preview/balance primitives, existing `TaxUtils` rounding and a shared summary balance expression. Calculation does not construct or mutate account transactions. FD/RD maturity caps, premature interest adjustments, persisted-tax reversal versus unsaved-tax update, and their distinct summary behavior are preserved.
+- Application validates state before mutations and applies the planned interest and tax amounts. A source-state receipt travels only through the explicit closure-transfer overload. It rejects changed amounts/dates/state and prevents the withdrawal leg from independently calculating or posting source interest after authorization. Existing block/balance checks, transaction persistence, journal calls and business-event calls remain on that withdrawal path; other transfer callers retain their existing overload and behavior.
+- No schema migration, new ThreadLocal, security impersonation or persisted authorization Boolean is introduced. No commit, push or PR has been made.
+
+## Validation and limits
+
+Final validation: **314 distinct tests passed — 67 savings and 247 provider; 0 failures, 0 errors and 0 skips.** The provider total includes 20 closure-plan cases, 13 closure-authority cases, four closure-envelope cases and one closure-withdrawal case, plus the selected existing regressions and command-replay tests. Overlapping earlier runs are not counted again.
+
+The savings suite passed in this combined invocation. Provider test compilation initially stopped on a missing AssertJ import in the new authority test; the import was corrected and the provider invocation below subsequently passed:
+
+```sh
+./gradlew :fineract-savings:test :fineract-provider:test --tests '*DepositAccountClosurePlanTest' --tests '*DepositClosure*Test' --tests '*DepositAccountApplicableInterestRateTest' --tests '*FixedDepositAccountInterestCalculationServiceImplTest' --tests '*Savings*AuthorityTest' --tests '*Savings*EnvelopeTest' --tests '*AccountTransfer*Test' --tests '*StandingInstruction*Test' --tests '*CommandSourceServiceTest' --tests '*SynchronousCommandProcessingServiceTest' --offline --no-daemon --no-parallel --max-workers=1 -Dorg.gradle.jvmargs=-Xmx768m -I /tmp/account-transfer-tests.gradle -x :fineract-provider:resolve
+```
+
+Final successful provider command:
+
+```sh
+./gradlew :fineract-provider:test --tests '*DepositAccountClosurePlanTest' --tests '*DepositClosure*Test' --tests '*DepositAccountApplicableInterestRateTest' --tests '*FixedDepositAccountInterestCalculationServiceImplTest' --tests '*Savings*AuthorityTest' --tests '*Savings*EnvelopeTest' --tests '*AccountTransfer*Test' --tests '*StandingInstruction*Test' --tests '*CommandSourceServiceTest' --tests '*SynchronousCommandProcessingServiceTest' --offline --no-daemon --no-parallel --max-workers=1 -Dorg.gradle.jvmargs=-Xmx768m -I /tmp/account-transfer-tests.gradle -x :fineract-provider:resolve
+```
+
+The temporary test init script sets `maxHeapSize = '512m'` and `maxParallelForks = 1`. Intermediate tests exposed premature-summary differences and replay-fixture setup errors; these were corrected before the final successful run.
+
+Scoped formatting and checks passed:
+
+```sh
+./gradlew :fineract-core:spotlessJavaApply :fineract-provider:spotlessJavaApply :fineract-savings:spotlessJavaApply :fineract-core:spotlessJavaCheck :fineract-provider:spotlessJavaCheck :fineract-savings:spotlessJavaCheck --offline --no-daemon --no-parallel --max-workers=1 -Dorg.gradle.jvmargs=-Xmx768m -I /tmp/closure-plan-spotless.gradle
+
+git diff --check
+```
+
+The Spotless init script targets only the 26 changed Java files and asserts their inclusion in task inputs. The complete diff and new files were reviewed. Untracked-file whitespace checks, conflict-marker checks and report-link checks passed. The working tree contains exactly those Java files and this report, with no generated files or migrations. This closure-only change is ready for code review and an independent commit, subject to the validation limits below; no commit was created.
+
+Tests cover all four closure modes, literal five-day interest/tax/net fixtures, comparison with the existing posting implementation, corrections, source/transaction purity, stale version/transaction state, applied-receipt replay and amount/date changes, inclusive authority bounds, original maker/checker separation, reduced/missing limits, pre-write denial, fresh approval/retry calculation, non-transfer exemption, closure envelope routing/spoof rejection, and completed-command replay. The withdrawal test verifies preserved accounting/event calls and absence of independent interest calculation. These are domain/unit and mocked persistence tests, not a live-database concurrency or journal-balance certification.
+
+## Remaining exclusions
+
+Loan disbursement/top-up, guarantee recovery, deposit activation and other alternative transfer paths remain separate follow-ups. Customer mandate evidence, scheduler redesign and scheduler/database concurrency certification remain excluded. Scheduled maturity closure continues through its existing path. This is not system-wide transfer-authority coverage.
+
+Before rollout, coordinate application versions and cancel/resubmit pending commands for the four newly enrolled closure kinds. Existing separately calculated transfer fees and financial eligibility checks remain applicable. The pessimistic account lock and existing optimistic version are used; production database contention and rollback behavior have not been exercised by the mocked tests.
+
+## Exact changed Java files
+
+- [SavingsTransactionKind.java](../../fineract-core/src/main/java/org/apache/fineract/commands/domain/SavingsTransactionKind.java)
+- [CommandWrapperBuilder.java](../../fineract-core/src/main/java/org/apache/fineract/commands/service/CommandWrapperBuilder.java)
+- [AccountTransfersWritePlatformService.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/account/service/AccountTransfersWritePlatformService.java)
+- [AccountTransfersWritePlatformServiceImpl.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/account/service/AccountTransfersWritePlatformServiceImpl.java)
+- [DepositAccountDomainService.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/domain/DepositAccountDomainService.java)
+- [DepositAccountDomainServiceJpa.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/domain/DepositAccountDomainServiceJpa.java)
+- [FixedDepositAccount.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/domain/FixedDepositAccount.java)
+- [RecurringDepositAccount.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/domain/RecurringDepositAccount.java)
+- [SavingsAccountDomainServiceJpa.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/domain/SavingsAccountDomainServiceJpa.java)
+- [CloseFixedDepositAccountCommandHandler.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/handler/CloseFixedDepositAccountCommandHandler.java)
+- [CloseRecurringDepositAccountCommandHandler.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/handler/CloseRecurringDepositAccountCommandHandler.java)
+- [PrematureCloseFixedDepositAccountCommandHandler.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/handler/PrematureCloseFixedDepositAccountCommandHandler.java)
+- [PrematureCloseRecurringDepositAccountCommandHandler.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/handler/PrematureCloseRecurringDepositAccountCommandHandler.java)
+- [DepositAccountWritePlatformServiceJpaRepositoryImpl.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/service/DepositAccountWritePlatformServiceJpaRepositoryImpl.java)
+- [DepositClosureAuthorityService.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/service/DepositClosureAuthorityService.java)
+- [SavingsConfiguration.java](../../fineract-provider/src/main/java/org/apache/fineract/portfolio/savings/starter/SavingsConfiguration.java)
+- [DepositClosureEnvelopeTest.java](../../fineract-provider/src/test/java/org/apache/fineract/commands/service/DepositClosureEnvelopeTest.java)
+- [SynchronousCommandProcessingServiceTest.java](../../fineract-provider/src/test/java/org/apache/fineract/commands/service/SynchronousCommandProcessingServiceTest.java)
+- [DepositAccountClosurePlanTest.java](../../fineract-provider/src/test/java/org/apache/fineract/portfolio/savings/domain/DepositAccountClosurePlanTest.java)
+- [DepositClosureWithdrawalTest.java](../../fineract-provider/src/test/java/org/apache/fineract/portfolio/savings/domain/DepositClosureWithdrawalTest.java)
+- [DepositClosureAuthorityTest.java](../../fineract-provider/src/test/java/org/apache/fineract/portfolio/savings/service/DepositClosureAuthorityTest.java)
+- [DepositAccountClosurePlan.java](../../fineract-savings/src/main/java/org/apache/fineract/portfolio/savings/domain/DepositAccountClosurePlan.java)
+- [SavingsAccount.java](../../fineract-savings/src/main/java/org/apache/fineract/portfolio/savings/domain/SavingsAccount.java)
+- [SavingsAccountSummary.java](../../fineract-savings/src/main/java/org/apache/fineract/portfolio/savings/domain/SavingsAccountSummary.java)
+- [DepositAccountWritePlatformService.java](../../fineract-savings/src/main/java/org/apache/fineract/portfolio/savings/service/DepositAccountWritePlatformService.java)
+- [SavingsAccountDomainService.java](../../fineract-savings/src/main/java/org/apache/fineract/portfolio/savings/service/SavingsAccountDomainService.java)
+
+This report is also changed.
+
+## Suggested commit (not executed)
+
+`feat(savings): authorize original-maker FD/RD closure proceeds before posting`
+
+## Archived Phase 1 report and earlier checkpoints
+
+The text below is retained as history; its unimplemented closure status is superseded by this continuation's implementation and final validation status above.
+
 # Account Transfer Authority — Phase 1
 
 ## Phase 1 complete — 2026-09-30

@@ -537,6 +537,20 @@ public class FixedDepositAccount extends SavingsAccount {
         this.accountTermAndPreClosure.updateOnAccountClosureStatus(onClosureType);
     }
 
+    public DepositAccountClosurePlan planClosureInterest(LocalDate closeDate, boolean premature, boolean postingAtPeriodEnd,
+            Integer financialYearBeginningMonth) {
+        LocalDate postingDate = premature ? closeDate : maturityDate();
+        LocalDate calculationDate = premature ? closeDate.minusDays(1) : maturityAdjustedPostingDate(postingDate);
+        return DepositAccountClosurePlan.calculate(this,
+                previewClosureInterest(closeDate, premature, postingAtPeriodEnd, financialYearBeginningMonth), postingDate, calculationDate,
+                calculateApplicableInterestRate(calculationDate, premature), premature, true, totalInterestPosted());
+    }
+
+    public void applyClosureInterest(DepositAccountClosurePlan plan, LocalDate closeDate) {
+        plan.apply(this);
+        if (plan.premature()) this.accountTermAndPreClosure.updateMaturityDetails(this.getAccountBalance(), closeDate);
+    }
+
     public void postMaturityInterest(final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth) {
         final LocalDate interestPostingUpToDate = maturityDate();
         final MathContext mc = MathContext.DECIMAL64;

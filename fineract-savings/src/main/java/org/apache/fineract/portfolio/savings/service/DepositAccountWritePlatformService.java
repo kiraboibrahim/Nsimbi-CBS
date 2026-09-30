@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.portfolio.savings.service;
 
+import org.apache.fineract.commands.domain.SavingsTransactionExecutionContext;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.portfolio.savings.DepositAccountType;
@@ -52,11 +53,19 @@ public interface DepositAccountWritePlatformService {
 
     CommandProcessingResult closeFDAccount(Long savingsId, JsonCommand command);
 
+    CommandProcessingResult closeFDAccount(Long savingsId, JsonCommand command, SavingsTransactionExecutionContext context);
+
     CommandProcessingResult closeRDAccount(Long savingsId, JsonCommand command);
+
+    CommandProcessingResult closeRDAccount(Long savingsId, JsonCommand command, SavingsTransactionExecutionContext context);
 
     CommandProcessingResult prematureCloseFDAccount(Long savingsId, JsonCommand command);
 
+    CommandProcessingResult prematureCloseFDAccount(Long savingsId, JsonCommand command, SavingsTransactionExecutionContext context);
+
     CommandProcessingResult prematureCloseRDAccount(Long savingsId, JsonCommand command);
+
+    CommandProcessingResult prematureCloseRDAccount(Long savingsId, JsonCommand command, SavingsTransactionExecutionContext context);
 
     CommandProcessingResult waiveCharge(Long savingsAccountId, Long savingsAccountChargeId, DepositAccountType depositAccountType);
 

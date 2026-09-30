@@ -24,6 +24,7 @@ import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.portfolio.account.PortfolioAccountType;
 import org.apache.fineract.portfolio.account.data.AccountTransferDTO;
 import org.apache.fineract.portfolio.account.domain.AccountTransferDetails;
+import org.apache.fineract.portfolio.savings.domain.DepositAccountClosurePlan;
 
 public interface AccountTransfersWritePlatformService {
 
@@ -32,6 +33,8 @@ public interface AccountTransfersWritePlatformService {
     void reverseTransfersWithFromAccountType(Long accountNumber, PortfolioAccountType accountTypeId);
 
     Long transferFunds(AccountTransferDTO accountTransferDTO);
+
+    Long transferFunds(AccountTransferDTO accountTransferDTO, DepositAccountClosurePlan.Applied closure);
 
     void reverseAllTransactions(Long accountId, PortfolioAccountType accountTypeId);
 

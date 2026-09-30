@@ -44,6 +44,9 @@ public interface DepositAccountDomainService {
     Long handleFDAccountClosure(FixedDepositAccount account, PaymentDetail paymentDetail, AppUser user, JsonCommand command,
             Map<String, Object> changes);
 
+    Long handleFDAccountClosure(FixedDepositAccount account, PaymentDetail paymentDetail, AppUser user, JsonCommand command,
+            Map<String, Object> changes, DepositAccountClosurePlan plan);
+
     @Transactional
     Long handleFDAccountMaturityClosure(FixedDepositAccount account, PaymentDetail paymentDetail, AppUser user, DateTimeFormatter fmt,
             LocalDate closedDate, Integer onAccountClosureId, Long toSavingsId, String transferDescription, Map<String, Object> changes);
@@ -51,9 +54,18 @@ public interface DepositAccountDomainService {
     Long handleRDAccountClosure(RecurringDepositAccount account, PaymentDetail paymentDetail, AppUser user, JsonCommand command,
             Map<String, Object> changes);
 
+    Long handleRDAccountClosure(RecurringDepositAccount account, PaymentDetail paymentDetail, AppUser user, JsonCommand command,
+            Map<String, Object> changes, DepositAccountClosurePlan plan);
+
     Long handleFDAccountPreMatureClosure(FixedDepositAccount account, PaymentDetail paymentDetail, AppUser user, JsonCommand command,
             Map<String, Object> changes);
 
+    Long handleFDAccountPreMatureClosure(FixedDepositAccount account, PaymentDetail paymentDetail, AppUser user, JsonCommand command,
+            Map<String, Object> changes, DepositAccountClosurePlan plan);
+
     Long handleRDAccountPreMatureClosure(RecurringDepositAccount account, PaymentDetail paymentDetail, AppUser user, JsonCommand command,
             Map<String, Object> changes);
+
+    Long handleRDAccountPreMatureClosure(RecurringDepositAccount account, PaymentDetail paymentDetail, AppUser user, JsonCommand command,
+            Map<String, Object> changes, DepositAccountClosurePlan plan);
 }

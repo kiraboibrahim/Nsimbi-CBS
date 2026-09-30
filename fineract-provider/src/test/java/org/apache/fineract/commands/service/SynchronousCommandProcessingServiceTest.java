@@ -715,4 +715,29 @@ public class SynchronousCommandProcessingServiceTest {
         // The deferred path was not taken: no TransactionSynchronization should have been registered.
         assertFalse(TransactionSynchronizationManager.isSynchronizationActive());
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = { "FD", "FD_PREMATURE", "RD", "RD_PREMATURE" })
+    void completedDepositClosureReplayDoesNotExecuteOrReauthorize(String operation) {
+        var builder = new CommandWrapperBuilder().withJson("{}");
+        var wrapper = switch (operation) {
+            case "FD" -> builder.closeFixedDepositAccount(42L).build();
+            case "FD_PREMATURE" -> builder.prematureCloseFixedDepositAccount(42L).build();
+            case "RD" -> builder.closeRecurringDepositAccount(42L).build();
+            default -> builder.prematureCloseRecurringDepositAccount(42L).build();
+        };
+        var command = mock(JsonCommand.class);
+        when(command.commandId()).thenReturn(null);
+        var completed = mock(CommandSource.class);
+        when(idempotencyKeyResolver.resolve(wrapper)).thenReturn("completed-closure");
+        when(commandSourceService.findCommandSource(wrapper, "completed-closure")).thenReturn(completed);
+        when(completed.getStatus()).thenReturn(CommandProcessingResultType.PROCESSED.getValue());
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.apache.fineract.infrastructure.core.exception.IdempotentCommandProcessSucceedException.class,
+                () -> underTest.executeCommand(wrapper, command, false));
+        org.mockito.Mockito.verifyNoInteractions(commandHandlerProvider, context);
+        verify(commandSourceService, never()).processCommandAndSaveResult(any(), any(), any(), any(),
+                org.mockito.ArgumentMatchers.anyBoolean(), any());
+    }
+
 }
