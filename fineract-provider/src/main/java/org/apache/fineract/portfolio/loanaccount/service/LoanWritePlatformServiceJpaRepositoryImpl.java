@@ -327,6 +327,11 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         loanTransactionValidator.validateDisbursement(command, isAccountTransfer, loanId);
 
         Loan loan = loanAssembler.assembleFrom(loanId);
+        if (loan.shouldCreateStandingInstructionAtDisbursement() && accountAssociationRepository.findByLoanIdAndType(loan.getId(),
+                AccountAssociationType.LINKED_ACCOUNT_ASSOCIATION.getValue()) != null) {
+            org.apache.fineract.portfolio.account.domain.StandingInstructionDuesPolicy
+                    .validateCreation(StandingInstructionType.DUES.getValue());
+        }
 
         if (loan.loanProduct().isDisallowExpectedDisbursements()) {
             List<LoanDisbursementDetails> filteredList = loan.getDisbursementDetails().stream()

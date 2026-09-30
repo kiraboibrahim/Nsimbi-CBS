@@ -113,9 +113,8 @@ public class StandingInstructionApiResource {
     @AlternativeOperationId("create_5")
     @RequestBody(required = true, content = @Content(schema = @Schema(implementation = StandingInstructionCreationRequest.class)))
     @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = StandingInstructionApiResourceSwagger.PostStandingInstructionsResponse.class)))
-    public CommandProcessingResult create(@Parameter(hidden = true) StandingInstructionCreationRequest creationRequest) {
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().createStandingInstruction()
-                .withJson(toApiJsonSerializer.serialize(creationRequest)).build();
+    public CommandProcessingResult create(@Parameter(hidden = true) String creationRequest) {
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().createStandingInstruction().withJson(creationRequest).build();
 
         return commandsSourceWritePlatformService.logCommandSource(commandRequest);
     }
@@ -133,10 +132,10 @@ public class StandingInstructionApiResource {
     @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = StandingInstructionApiResourceSwagger.PutStandingInstructionsStandingInstructionIdResponse.class)))
     public CommandProcessingResult update(
             @PathParam("standingInstructionId") @Parameter(description = "standingInstructionId") final Long standingInstructionId,
-            @Parameter(hidden = true) StandingInstructionUpdatesRequest updatesRequest,
+            @Parameter(hidden = true) String updatesRequest,
             @QueryParam("command") @Parameter(description = "command") final String commandParam) {
 
-        final String serializedUpdatesRequest = toApiJsonSerializer.serialize(updatesRequest);
+        final String serializedUpdatesRequest = updatesRequest;
         final CommandWrapper commandRequest = COMMAND_HANDLER_REGISTRY.execute(commandParam, standingInstructionId,
                 serializedUpdatesRequest, new UnrecognizedQueryParamException("command", commandParam));
 

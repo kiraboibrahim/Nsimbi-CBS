@@ -34,10 +34,8 @@ import org.springframework.stereotype.Component;
 /**
  * Batch command strategy for creating account transfers via {@code POST v1/accounttransfers}.
  *
- * The {@link org.apache.fineract.portfolio.account.api.AccountTransfersApiResource#create} method accepts a typed DTO
- * and immediately re-serializes it to JSON before passing it to the command pipeline. This strategy bypasses that
- * round-trip and passes the raw request body directly to {@link PortfolioCommandSourceWritePlatformService}, which is
- * functionally equivalent.
+ * Both this strategy and the REST resource pass raw JSON through the same protected CREATE_ACCOUNTTRANSFER command.
+ * Server-owned provenance and original-maker monetary authority are enforced by that command pipeline.
  */
 @Component
 @RequiredArgsConstructor

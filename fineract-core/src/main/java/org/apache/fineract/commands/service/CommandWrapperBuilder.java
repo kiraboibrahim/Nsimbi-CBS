@@ -2039,6 +2039,7 @@ public class CommandWrapperBuilder {
     }
 
     public CommandWrapperBuilder createAccountTransfer() {
+        this.savingsTransactionOrigin = SavingsTransactionOrigin.STAFF_API;
         this.actionName = ACTION_CREATE;
         this.entityName = ENTITY_ACCOUNTTRANSFER;
         this.entityId = null;
@@ -2047,6 +2048,7 @@ public class CommandWrapperBuilder {
     }
 
     public CommandWrapperBuilder createStandingInstruction() {
+        this.savingsTransactionOrigin = SavingsTransactionOrigin.STAFF_API;
         this.actionName = ACTION_CREATE;
         this.entityName = ENTITY_STANDINGINSTRUCTION;
         this.entityId = null;
@@ -2055,6 +2057,7 @@ public class CommandWrapperBuilder {
     }
 
     public CommandWrapperBuilder updateStandingInstruction(final Long standingInstructionId) {
+        this.savingsTransactionOrigin = SavingsTransactionOrigin.STAFF_API;
         this.actionName = ACTION_UPDATE;
         this.entityName = ENTITY_STANDINGINSTRUCTION;
         this.entityId = standingInstructionId;
@@ -3105,6 +3108,7 @@ public class CommandWrapperBuilder {
     }
 
     public CommandWrapperBuilder refundByTransfer() {
+        this.savingsTransactionOrigin = SavingsTransactionOrigin.STAFF_API;
         this.actionName = ACTION_REFUNDBYTRANSFER;
         this.entityName = ENTITY_ACCOUNTTRANSFER;
         this.entityId = null;

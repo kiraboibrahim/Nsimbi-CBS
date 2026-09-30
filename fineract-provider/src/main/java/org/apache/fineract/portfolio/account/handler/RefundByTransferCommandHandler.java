@@ -20,9 +20,13 @@ package org.apache.fineract.portfolio.account.handler;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.fineract.commands.annotation.CommandType;
-import org.apache.fineract.commands.handler.NewCommandSourceHandler;
+import org.apache.fineract.commands.domain.SavingsTransactionCommandEnvelope;
+import org.apache.fineract.commands.domain.SavingsTransactionExecutionContext;
+import org.apache.fineract.commands.domain.SavingsTransactionKind;
+import org.apache.fineract.commands.handler.SavingsTransactionCommandHandler;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
+import org.apache.fineract.portfolio.account.service.AccountTransferAuthorityService;
 import org.apache.fineract.portfolio.account.service.AccountTransfersWritePlatformService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,14 +34,22 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @CommandType(entity = "ACCOUNTTRANSFER", action = "REFUNDBYTRANSFER")
-public class RefundByTransferCommandHandler implements NewCommandSourceHandler {
+public class RefundByTransferCommandHandler implements SavingsTransactionCommandHandler {
+
+    private final AccountTransferAuthorityService authority;
 
     private final AccountTransfersWritePlatformService writePlatformService;
 
     @Transactional
     @Override
     public CommandProcessingResult processCommand(final JsonCommand command) {
+        throw SavingsTransactionCommandEnvelope.untrustedOrigin(SavingsTransactionKind.ACCOUNT_TRANSFER_REFUND);
+    }
 
+    @Transactional
+    @Override
+    public CommandProcessingResult processTransaction(JsonCommand command, SavingsTransactionExecutionContext context) {
+        authority.authorize(command, context, SavingsTransactionKind.ACCOUNT_TRANSFER_REFUND);
         return this.writePlatformService.refundByTransfer(command);
     }
 }

@@ -89,9 +89,8 @@ public class AccountTransfersApiResource {
     @AlternativeOperationId("create_4")
     @RequestBody(required = true, content = @Content(schema = @Schema(implementation = AccountTransferRequest.class)))
     @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = AccountTransfersApiResourceSwagger.PostAccountTransfersResponse.class)))
-    public CommandProcessingResult create(@Parameter(hidden = true) AccountTransferRequest accountTransferRequest) {
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().createAccountTransfer()
-                .withJson(toApiJsonSerializer.serialize(accountTransferRequest)).build();
+    public CommandProcessingResult create(@Parameter(hidden = true) String accountTransferRequest) {
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().createAccountTransfer().withJson(accountTransferRequest).build();
 
         return commandsSourceWritePlatformService.logCommandSource(commandRequest);
     }
@@ -154,9 +153,8 @@ public class AccountTransfersApiResource {
     @AlternativeOperationId("templateRefundByTransferPost")
     @RequestBody(required = true, content = @Content(schema = @Schema(implementation = AccountTransferRequest.class)))
     @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = AccountTransfersApiResourceSwagger.PostAccountTransfersRefundByTransferResponse.class)))
-    public CommandProcessingResult templateRefundByTransferPost(@Parameter(hidden = true) AccountTransferRequest accountTransferRequest) {
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().refundByTransfer()
-                .withJson(toApiJsonSerializer.serialize(accountTransferRequest)).build();
+    public CommandProcessingResult templateRefundByTransferPost(@Parameter(hidden = true) String accountTransferRequest) {
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().refundByTransfer().withJson(accountTransferRequest).build();
         return commandsSourceWritePlatformService.logCommandSource(commandRequest);
     }
 

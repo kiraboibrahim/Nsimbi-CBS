@@ -401,13 +401,20 @@ class SavingsDepositAuthorityTest {
             }
             default -> {
                 var transfers = mock(AccountTransfersWritePlatformService.class);
-                when(handlers.getHandler("ACCOUNTTRANSFER", "CREATE")).thenReturn(new CreateAccountTransferCommandHandler(transfers));
+                when(handlers.getHandler("ACCOUNTTRANSFER", "CREATE")).thenReturn(new CreateAccountTransferCommandHandler(
+                        mock(org.apache.fineract.portfolio.account.service.AccountTransferAuthorityService.class), transfers));
                 when(transfers.create(any())).thenReturn(result);
                 wrapper = new CommandWrapperBuilder().createAccountTransfer().build();
             }
         }
         assertThat(commands.logCommandSource(wrapper)).isSameAs(result);
-        assertThat(savedSource.getCommandAsJson()).isEqualTo("{}");
+        if ("ACCOUNTTRANSFER".equals(wrapper.entityName())) {
+            assertThat(savedSource.getCommandAsJson()).isEqualTo(org.apache.fineract.commands.domain.SavingsTransactionCommandEnvelope
+                    .encode("{}", org.apache.fineract.commands.domain.SavingsTransactionKind.ACCOUNT_TRANSFER,
+                            org.apache.fineract.commands.domain.SavingsTransactionOrigin.STAFF_API));
+        } else {
+            assertThat(savedSource.getCommandAsJson()).isEqualTo("{}");
+        }
         verifyNoInteractions(authorities, accounts);
     }
 
