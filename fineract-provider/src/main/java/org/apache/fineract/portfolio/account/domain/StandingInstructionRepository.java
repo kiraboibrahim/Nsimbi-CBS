@@ -18,16 +18,23 @@
  */
 package org.apache.fineract.portfolio.account.domain;
 
+import jakarta.persistence.LockModeType;
 import java.util.Collection;
+import java.util.Optional;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface StandingInstructionRepository
         extends JpaRepository<AccountTransferStandingInstruction, Long>, JpaSpecificationExecutor<AccountTransferStandingInstruction> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select instruction from AccountTransferStandingInstruction instruction where instruction.id = :id")
+    Optional<AccountTransferStandingInstruction> findByIdForUpdate(@Param("id") Long id);
 
     String FIND_BY_LOAN_AND_STATUS_QUERY = "select accountTransferStandingInstruction "
             + "from AccountTransferStandingInstruction accountTransferStandingInstruction "

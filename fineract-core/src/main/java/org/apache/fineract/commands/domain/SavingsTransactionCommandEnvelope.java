@@ -62,7 +62,9 @@ public final class SavingsTransactionCommandEnvelope {
         if (payload.has(METADATA)) {
             throw new GeneralPlatformDomainRuleException(errorPrefix(kind) + ".reserved.metadata", kind == SavingsTransactionKind.DEPOSIT
                     ? "The _serverCommand property is reserved for server use and must not be supplied in a deposit request."
-                    : "The _serverCommand property is reserved for server use and must not be supplied in a savings transaction request.");
+                    : kind.isTransferOperation()
+                            ? "The _serverCommand property is reserved for server use and must not be supplied in a transfer or standing-instruction request."
+                            : "The _serverCommand property is reserved for server use and must not be supplied in a savings transaction request.");
         }
         return payload;
     }
@@ -112,12 +114,20 @@ public final class SavingsTransactionCommandEnvelope {
     }
 
     public static GeneralPlatformDomainRuleException untrustedOrigin(SavingsTransactionKind kind) {
+        if (kind.isTransferOperation()) {
+            return new GeneralPlatformDomainRuleException(errorPrefix(kind) + ".untrusted.origin",
+                    "This transfer or standing-instruction command has untrusted or unsupported origin metadata. "
+                            + "Cancel it and resubmit the operation.");
+        }
         return new GeneralPlatformDomainRuleException(errorPrefix(kind) + ".untrusted.origin", kind == SavingsTransactionKind.DEPOSIT
                 ? "This deposit command has untrusted or unsupported origin metadata. Cancel it and resubmit the deposit."
                 : "This savings withdrawal command has untrusted or unsupported origin metadata. Cancel it and resubmit the operation.");
     }
 
     private static String errorPrefix(SavingsTransactionKind kind) {
+        if (kind.isTransferOperation()) {
+            return "error.msg.accounttransfer";
+        }
         return kind == SavingsTransactionKind.DEPOSIT ? "error.msg.savings.deposit" : "error.msg.savings.withdrawal";
     }
 

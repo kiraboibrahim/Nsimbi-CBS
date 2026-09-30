@@ -20,9 +20,23 @@ package org.apache.fineract.commands.domain;
 
 public enum SavingsTransactionKind {
 
-    DEPOSIT, WITHDRAWAL, FORCE_WITHDRAWAL, ADJUSTTRANSACTION, CLOSE, GSIM_CLOSE;
+    DEPOSIT, WITHDRAWAL, FORCE_WITHDRAWAL, ADJUSTTRANSACTION, CLOSE, GSIM_CLOSE, ACCOUNT_TRANSFER, ACCOUNT_TRANSFER_REFUND, STANDING_INSTRUCTION_CREATE, STANDING_INSTRUCTION_UPDATE;
 
     public static SavingsTransactionKind fromCommand(String action, String entity) {
+        if ("ACCOUNTTRANSFER".equals(entity)) {
+            return switch (action) {
+                case "CREATE" -> ACCOUNT_TRANSFER;
+                case "REFUNDBYTRANSFER" -> ACCOUNT_TRANSFER_REFUND;
+                default -> null;
+            };
+        }
+        if ("STANDINGINSTRUCTION".equals(entity)) {
+            return switch (action) {
+                case "CREATE" -> STANDING_INSTRUCTION_CREATE;
+                case "UPDATE" -> STANDING_INSTRUCTION_UPDATE;
+                default -> null;
+            };
+        }
         if ("GSIMACCOUNT".equals(entity) && "CLOSE".equals(action)) {
             return GSIM_CLOSE;
         }
@@ -30,11 +44,16 @@ public enum SavingsTransactionKind {
             return null;
         }
         for (var kind : values()) {
-            if (kind != GSIM_CLOSE && kind.name().equals(action)) {
+            if (!kind.isTransferOperation() && kind != GSIM_CLOSE && kind.name().equals(action)) {
                 return kind;
             }
         }
         return null;
+    }
+
+    public boolean isTransferOperation() {
+        return this == ACCOUNT_TRANSFER || this == ACCOUNT_TRANSFER_REFUND || this == STANDING_INSTRUCTION_CREATE
+                || this == STANDING_INSTRUCTION_UPDATE;
     }
 
     public boolean accepts(SavingsTransactionOrigin origin) {

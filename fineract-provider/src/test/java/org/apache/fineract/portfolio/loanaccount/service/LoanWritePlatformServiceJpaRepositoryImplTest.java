@@ -30,6 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.gson.JsonArray;
@@ -52,6 +53,7 @@ import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.domain.ExternalId;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
 import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
+import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.ExternalIdFactory;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
@@ -63,6 +65,9 @@ import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
 import org.apache.fineract.organisation.office.domain.Office;
 import org.apache.fineract.portfolio.account.data.PortfolioAccountData;
+import org.apache.fineract.portfolio.account.domain.AccountAssociationType;
+import org.apache.fineract.portfolio.account.domain.AccountAssociations;
+import org.apache.fineract.portfolio.account.domain.AccountAssociationsRepository;
 import org.apache.fineract.portfolio.account.service.AccountAssociationsReadPlatformService;
 import org.apache.fineract.portfolio.account.service.AccountTransfersWritePlatformService;
 import org.apache.fineract.portfolio.charge.domain.ChargePaymentMode;
@@ -183,6 +188,9 @@ public class LoanWritePlatformServiceJpaRepositoryImplTest {
     @Mock
     private LoanOriginatorLinkingService loanOriginatorLinkingService;
 
+    @Mock
+    private AccountAssociationsRepository accountAssociationRepository;
+
     @InjectMocks
     private LoanWritePlatformServiceJpaRepositoryImpl loanWritePlatformService;
 
@@ -199,6 +207,24 @@ public class LoanWritePlatformServiceJpaRepositoryImplTest {
                 .setBusinessDates(new HashMap<>(Map.of(BusinessDateType.BUSINESS_DATE, DateUtils.parseLocalDate("2025-05-20"))));
 
         when(context.getAuthenticatedUserIfPresent()).thenReturn(appUser);
+    }
+
+    @Test
+    public void automaticDuesCreationRejectsBeforeDisbursementMutations() {
+        org.mockito.Mockito.reset(context); // Rejection precedes even the authenticated-user lookup.
+        Loan source = mock(Loan.class);
+        when(loanAssembler.assembleFrom(LOAN_ID)).thenReturn(source);
+        when(source.getId()).thenReturn(LOAN_ID);
+        when(source.shouldCreateStandingInstructionAtDisbursement()).thenReturn(true);
+        when(accountAssociationRepository.findByLoanIdAndType(LOAN_ID, AccountAssociationType.LINKED_ACCOUNT_ASSOCIATION.getValue()))
+                .thenReturn(mock(AccountAssociations.class));
+
+        assertThrows(PlatformApiDataValidationException.class,
+                () -> loanWritePlatformService.disburseLoan(LOAN_ID, mock(JsonCommand.class), true));
+
+        verifyNoInteractions(paymentDetailWritePlatformService, businessEventNotifierService, loanTransactionRepository, journalEntryPoster,
+                accountTransfersWritePlatformService);
+        verify(source, never()).loanProduct();
     }
 
     private void setupMoneyHelper() {

@@ -107,6 +107,7 @@ public class AccountTransferStandingInstruction extends AbstractPersistableCusto
             final Integer priority, final Integer instructionType, final Integer status, final BigDecimal amount, final LocalDate validFrom,
             final LocalDate validTill, final Integer recurrenceType, final Integer recurrenceFrequency, final Integer recurrenceInterval,
             final MonthDay recurrenceOnMonthDay) {
+        StandingInstructionDuesPolicy.validateCreation(instructionType);
         Integer recurrenceOnDay = null;
         Integer recurrenceOnMonth = null;
         if (recurrenceOnMonthDay != null) {
@@ -144,7 +145,20 @@ public class AccountTransferStandingInstruction extends AbstractPersistableCusto
         }
     }
 
+    public Integer instructionType() {
+        return instructionType;
+    }
+
+    public BigDecimal amount() {
+        return amount;
+    }
+
+    public AccountTransferDetails transferDetails() {
+        return accountTransferDetails;
+    }
+
     public Map<String, Object> update(JsonCommand command) {
+        StandingInstructionDuesPolicy.validateUpdate(this.instructionType, command);
         final Map<String, Object> actualChanges = new HashMap<>();
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();

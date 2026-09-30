@@ -123,10 +123,11 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
         return PortfolioAccountType.SAVINGS.equals(fromAccountType) && PortfolioAccountType.SAVINGS.equals(toAccountType);
     }
 
+    @Transactional
     @Override
     public CommandProcessingResult update(final Long id, final JsonCommand command) {
         this.standingInstructionDataValidator.validateForUpdate(command);
-        AccountTransferStandingInstruction standingInstructionsForUpdate = this.standingInstructionRepository.findById(id)
+        AccountTransferStandingInstruction standingInstructionsForUpdate = this.standingInstructionRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new StandingInstructionNotFoundException(id));
         final Map<String, Object> actualChanges = standingInstructionsForUpdate.update(command);
         return new CommandProcessingResultBuilder() //
@@ -136,9 +137,11 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
                 .build();
     }
 
+    @Transactional
     @Override
     public CommandProcessingResult delete(final Long id) {
-        AccountTransferStandingInstruction standingInstructionsForUpdate = this.standingInstructionRepository.findById(id).orElseThrow();
+        AccountTransferStandingInstruction standingInstructionsForUpdate = this.standingInstructionRepository.findByIdForUpdate(id)
+                .orElseThrow();
         // update the "deleted" and "name" properties of the standing
         // instruction
         standingInstructionsForUpdate.delete();

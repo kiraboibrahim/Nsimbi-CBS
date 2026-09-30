@@ -114,6 +114,10 @@ public class ExecuteStandingInstructionsTasklet implements Tasklet {
                 final boolean transferCompleted = transferAmount(errors, accountTransferDTO, data.getId());
 
                 if (transferCompleted) {
+                    if (instructionType.isDuesAmoutTransfer()) {
+                        log.info("Grandfathered DUES standing instruction executed: instructionId={}, businessDate={}", data.getId(),
+                                transactionDate);
+                    }
                     final String updateQuery = "UPDATE m_account_transfer_standing_instructions SET last_run_date = ? where id = ?";
                     jdbcTemplate.update(updateQuery, transactionDate, data.getId());
                 }

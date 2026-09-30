@@ -20,22 +20,35 @@ package org.apache.fineract.portfolio.account.handler;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.fineract.commands.annotation.CommandType;
-import org.apache.fineract.commands.handler.NewCommandSourceHandler;
+import org.apache.fineract.commands.domain.SavingsTransactionCommandEnvelope;
+import org.apache.fineract.commands.domain.SavingsTransactionExecutionContext;
+import org.apache.fineract.commands.domain.SavingsTransactionKind;
+import org.apache.fineract.commands.handler.SavingsTransactionCommandHandler;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
+import org.apache.fineract.portfolio.account.service.AccountTransferAuthorityService;
 import org.apache.fineract.portfolio.account.service.StandingInstructionWritePlatformService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @CommandType(entity = "STANDINGINSTRUCTION", action = "CREATE")
 @RequiredArgsConstructor
-public class CreateStandingInstructionCommandHandler implements NewCommandSourceHandler {
+public class CreateStandingInstructionCommandHandler implements SavingsTransactionCommandHandler {
+
+    private final AccountTransferAuthorityService authority;
 
     private final StandingInstructionWritePlatformService standingInstructionWritePlatformService;
 
     @Override
-    public CommandProcessingResult processCommand(JsonCommand command) {
-        return this.standingInstructionWritePlatformService.create(command);
+    public CommandProcessingResult processCommand(final JsonCommand command) {
+        throw SavingsTransactionCommandEnvelope.untrustedOrigin(SavingsTransactionKind.STANDING_INSTRUCTION_CREATE);
     }
 
+    @Transactional
+    @Override
+    public CommandProcessingResult processTransaction(JsonCommand command, SavingsTransactionExecutionContext context) {
+        authority.authorize(command, context, SavingsTransactionKind.STANDING_INSTRUCTION_CREATE);
+        return this.standingInstructionWritePlatformService.create(command);
+    }
 }
