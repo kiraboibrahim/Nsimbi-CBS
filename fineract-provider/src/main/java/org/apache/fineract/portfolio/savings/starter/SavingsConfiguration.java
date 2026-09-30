@@ -106,6 +106,7 @@ import org.apache.fineract.portfolio.savings.service.DepositAccountWritePlatform
 import org.apache.fineract.portfolio.savings.service.DepositAccountWritePlatformServiceJpaRepositoryImpl;
 import org.apache.fineract.portfolio.savings.service.DepositApplicationProcessWritePlatformService;
 import org.apache.fineract.portfolio.savings.service.DepositApplicationProcessWritePlatformServiceJpaRepositoryImpl;
+import org.apache.fineract.portfolio.savings.service.DepositClosureAuthorityService;
 import org.apache.fineract.portfolio.savings.service.DepositProductReadPlatformService;
 import org.apache.fineract.portfolio.savings.service.DepositProductReadPlatformServiceImpl;
 import org.apache.fineract.portfolio.savings.service.DepositsDropdownReadPlatformService;
@@ -225,7 +226,7 @@ public class SavingsConfiguration {
     @Bean
     @ConditionalOnMissingBean(DepositAccountWritePlatformService.class)
     public DepositAccountWritePlatformService depositAccountWritePlatformService(PlatformSecurityContext context,
-            SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
+            DepositClosureAuthorityService closureAuthority, SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
             SavingsAccountTransactionRepository savingsAccountTransactionRepository, DepositAccountAssembler depositAccountAssembler,
             SavingsAccountPostInterestService savingsAccountPostInterestService,
             DepositAccountTransactionDataValidator depositAccountTransactionDataValidator,
@@ -243,7 +244,7 @@ public class SavingsConfiguration {
             DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository
 
     ) {
-        return new DepositAccountWritePlatformServiceJpaRepositoryImpl(context, savingAccountRepositoryWrapper,
+        return new DepositAccountWritePlatformServiceJpaRepositoryImpl(context, closureAuthority, savingAccountRepositoryWrapper,
                 savingsAccountTransactionRepository, depositAccountAssembler, savingsAccountPostInterestService,
                 depositAccountTransactionDataValidator, savingsAccountChargeDataValidator, paymentDetailWritePlatformService,
                 applicationCurrencyRepositoryWrapper, journalEntryWritePlatformService, depositAccountDomainService, noteRepository,

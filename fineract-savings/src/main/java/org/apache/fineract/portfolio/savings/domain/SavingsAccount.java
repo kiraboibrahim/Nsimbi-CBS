@@ -706,8 +706,45 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
         // update existing transactions so derived balance fields are correct.
         recalculateDailyBalances(openingAccountBalance, upToInterestCalculationDate, backdatedTxnsAllowedTill, postReversals);
 
+        var transactionDetails = toSavingsAccountTransactionDetailsForPostingPeriodList(
+                backdatedTxnsAllowedTill ? retreiveOrderedNonInterestPostingSavingsTransactionsWithPivotConfig()
+                        : retreiveOrderedNonInterestPostingTransactions());
+        boolean calculateInterest = hasInterestCalculation() || hasOverdraftInterestCalculation();
+        BigDecimal rate = calculateInterest ? getEffectiveInterestRateAsFraction(mc, upToInterestCalculationDate) : BigDecimal.ZERO;
+        final List<PostingPeriod> allPostingPeriods = calculateInterestPeriods(mc, upToInterestCalculationDate, isInterestTransfer,
+                isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, postInterestOnDate, backdatedTxnsAllowedTill,
+                transactionDetails, rate, calculateInterest);
+        if (calculateInterest) {
+            this.summary.updateFromInterestPeriodSummaries(this.currency, allPostingPeriods);
+        }
+
+        if (backdatedTxnsAllowedTill) {
+            this.summary.updateSummaryWithPivotConfig(this.currency, this.savingsAccountTransactionSummaryWrapper, null,
+                    this.savingsAccountTransactions);
+        } else {
+            this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, this.transactions);
+        }
+
+        return allPostingPeriods;
+    }
+
+    /** Calculates deposit-closure interest without changing account, summary, or transaction state. */
+    protected List<PostingPeriod> previewInterestUsing(final MathContext mc, final LocalDate calculationDate,
+            final boolean interestPostingAtPeriodEnd, final Integer financialYearBeginningMonth, final BigDecimal annualRate) {
+        var transactionDetails = SavingsAccountBalanceProjection.calculate(retrieveListOfTransactions(), Money.zero(this.currency),
+                calculationDate, hasInterestCalculation() || hasOverdraftInterestCalculation(), this.allowOverdraft);
+        return calculateInterestPeriods(mc, calculationDate, false, interestPostingAtPeriodEnd, financialYearBeginningMonth, null, false,
+                transactionDetails, annualRate.divide(BigDecimal.valueOf(100L), mc),
+                hasInterestCalculation() || hasOverdraftInterestCalculation());
+    }
+
+    private List<PostingPeriod> calculateInterestPeriods(final MathContext mc, final LocalDate upToInterestCalculationDate,
+            final boolean isInterestTransfer, final boolean isSavingsInterestPostingAtCurrentPeriodEnd,
+            final Integer financialYearBeginningMonth, final LocalDate postInterestOnDate, final boolean backdatedTxnsAllowedTill,
+            final List<SavingsAccountTransactionDetailsForPostingPeriod> transactionDetails, final BigDecimal interestRateAsFraction,
+            final boolean calculateInterest) {
         final List<PostingPeriod> allPostingPeriods = new ArrayList<>();
-        if (hasInterestCalculation() || hasOverdraftInterestCalculation()) {
+        if (calculateInterest) {
             // 1. default to calculate interest based on entire history OR
             // 2. determine latest 'posting period' and find interest credited to that
             // period
@@ -755,7 +792,6 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
 
             final SavingsInterestCalculationType interestCalculationType = SavingsInterestCalculationType
                     .fromInt(this.interestCalculationType);
-            final BigDecimal interestRateAsFraction = getEffectiveInterestRateAsFraction(mc, upToInterestCalculationDate);
             final BigDecimal overdraftInterestRateAsFraction = getEffectiveOverdraftInterestRateAsFraction(mc);
             final Collection<Long> interestPostTransactions = this.savingsHelper.fetchPostInterestTransactionIds(getId());
             final Money minBalanceForInterestCalculation = Money.of(getCurrency(), minBalanceForInterestCalculation());
@@ -768,22 +804,11 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
                     isUserPosting = true;
                 }
 
-                PostingPeriod postingPeriod = null;
-                List<SavingsAccountTransaction> orderedNonInterestPostingTransactions = null;
-                if (backdatedTxnsAllowedTill) {
-                    orderedNonInterestPostingTransactions = retreiveOrderedNonInterestPostingSavingsTransactionsWithPivotConfig();
-                } else {
-                    orderedNonInterestPostingTransactions = retreiveOrderedNonInterestPostingTransactions();
-                }
-
-                List<SavingsAccountTransactionDetailsForPostingPeriod> savingsAccountTransactionDetailsForPostingPeriod = toSavingsAccountTransactionDetailsForPostingPeriodList(
-                        orderedNonInterestPostingTransactions);
-
-                postingPeriod = PostingPeriod.createFrom(periodInterval, periodStartingBalance,
-                        savingsAccountTransactionDetailsForPostingPeriod, this.currency, compoundingPeriodType, interestCalculationType,
-                        interestRateAsFraction, daysInYearType.getValue(), upToInterestCalculationDate, interestPostTransactions,
-                        isInterestTransfer, minBalanceForInterestCalculation, isSavingsInterestPostingAtCurrentPeriodEnd,
-                        overdraftInterestRateAsFraction, minOverdraftForInterestCalculation, isUserPosting, financialYearBeginningMonth);
+                PostingPeriod postingPeriod = PostingPeriod.createFrom(periodInterval, periodStartingBalance, transactionDetails,
+                        this.currency, compoundingPeriodType, interestCalculationType, interestRateAsFraction, daysInYearType.getValue(),
+                        upToInterestCalculationDate, interestPostTransactions, isInterestTransfer, minBalanceForInterestCalculation,
+                        isSavingsInterestPostingAtCurrentPeriodEnd, overdraftInterestRateAsFraction, minOverdraftForInterestCalculation,
+                        isUserPosting, financialYearBeginningMonth);
 
                 periodStartingBalance = postingPeriod.closingBalance();
 
@@ -793,14 +818,6 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
             this.savingsHelper.calculateInterestForAllPostingPeriods(this.currency, allPostingPeriods, getLockedInUntilDate(),
                     isTransferInterestToOtherAccount());
 
-            this.summary.updateFromInterestPeriodSummaries(this.currency, allPostingPeriods);
-        }
-
-        if (backdatedTxnsAllowedTill) {
-            this.summary.updateSummaryWithPivotConfig(this.currency, this.savingsAccountTransactionSummaryWrapper, null,
-                    this.savingsAccountTransactions);
-        } else {
-            this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, this.transactions);
         }
 
         return allPostingPeriods;
@@ -817,6 +834,10 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
     @SuppressWarnings("unused")
     protected BigDecimal getEffectiveInterestRateAsFraction(final MathContext mc, final LocalDate upToInterestCalculationDate) {
         return this.nominalAnnualInterestRate.divide(BigDecimal.valueOf(100L), mc);
+    }
+
+    boolean calculatesClosureInterest() {
+        return hasInterestCalculation() || hasOverdraftInterestCalculation();
     }
 
     private boolean hasInterestCalculation() {
@@ -897,35 +918,16 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
             if (transaction.isReversed() || transaction.isReversalTransaction()) {
                 transaction.zeroBalanceFields();
             } else {
-                Money overdraftAmount = Money.zero(this.currency);
-                Money transactionAmount = Money.zero(this.currency);
-                if ((transaction.isCredit() || transaction.isAmountRelease())) {
-                    if (runningBalance.isLessThanZero()) {
-                        Money diffAmount = transaction.getAmount(this.currency).plus(runningBalance);
-                        if (diffAmount.isGreaterThanZero()) {
-                            overdraftAmount = transaction.getAmount(this.currency).minus(diffAmount);
-                        } else {
-                            overdraftAmount = transaction.getAmount(this.currency);
-                        }
-                    }
-                    transactionAmount = transactionAmount.plus(transaction.getAmount(this.currency));
-                } else if (transaction.isDebit() || transaction.isAmountOnHold()) {
-                    if (runningBalance.isLessThanZero()) {
-                        overdraftAmount = transaction.getAmount(this.currency);
-                    }
-                    transactionAmount = transactionAmount.minus(transaction.getAmount(this.currency));
-                }
-
-                runningBalance = runningBalance.plus(transactionAmount);
+                final SavingsAccountRunningBalance calculation = SavingsAccountRunningBalance.calculate(runningBalance,
+                        transaction.getAmount(this.currency), transaction.isCredit() || transaction.isAmountRelease(),
+                        transaction.isDebit() || transaction.isAmountOnHold(), transaction.isAmountOnHold());
+                runningBalance = calculation.runningBalance();
+                final Money overdraftAmount = calculation.overdraftAmount();
                 transaction.setRunningBalance(runningBalance);
-
-                if (MathUtil.isEmpty(overdraftAmount) && runningBalance.isLessThanZero() && !transaction.isAmountOnHold()) {
-                    overdraftAmount = runningBalance.negated();
-                }
                 if (!calculateInterest || transaction.getId() == null || transaction.getOverdraftAmount(this.currency).isZero()) {
                     transaction.setOverdraftAmount(overdraftAmount);
-                } else if (!MathUtil.isEqualTo(overdraftAmount, transaction.getOverdraftAmount(this.currency))
-                        && !transaction.isAccrual()) {
+                } else if (SavingsAccountBalanceProjection.requiresReplacement(calculateInterest, transaction.getId(),
+                        transaction.getOverdraftAmount(this.currency), overdraftAmount, transaction.isAccrual())) {
                     SavingsAccountTransaction accountTransaction = SavingsAccountTransaction.copyTransaction(transaction);
                     if (transaction.isChargeTransaction()) {
                         Set<SavingsAccountChargePaidBy> chargesPaidBy = transaction.getSavingsAccountChargesPaid();

@@ -20,7 +20,10 @@ package org.apache.fineract.portfolio.savings.handler;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.fineract.commands.annotation.CommandType;
-import org.apache.fineract.commands.handler.NewCommandSourceHandler;
+import org.apache.fineract.commands.domain.SavingsTransactionCommandEnvelope;
+import org.apache.fineract.commands.domain.SavingsTransactionExecutionContext;
+import org.apache.fineract.commands.domain.SavingsTransactionKind;
+import org.apache.fineract.commands.handler.SavingsTransactionCommandHandler;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.portfolio.savings.service.DepositAccountWritePlatformService;
@@ -30,13 +33,20 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @CommandType(entity = "RECURRINGDEPOSITACCOUNT", action = "PREMATURECLOSE")
 @RequiredArgsConstructor
-public class PrematureCloseRecurringDepositAccountCommandHandler implements NewCommandSourceHandler {
+public class PrematureCloseRecurringDepositAccountCommandHandler implements SavingsTransactionCommandHandler {
 
     private final DepositAccountWritePlatformService depositAccountWritePlatformService;
 
     @Transactional
     @Override
     public CommandProcessingResult processCommand(final JsonCommand command) {
-        return this.depositAccountWritePlatformService.prematureCloseRDAccount(command.entityId(), command);
+        throw SavingsTransactionCommandEnvelope.untrustedOrigin(SavingsTransactionKind.RECURRING_DEPOSIT_PREMATURE_CLOSE);
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult processTransaction(JsonCommand command, SavingsTransactionExecutionContext context) {
+        context.requireKind(SavingsTransactionKind.RECURRING_DEPOSIT_PREMATURE_CLOSE);
+        return this.depositAccountWritePlatformService.prematureCloseRDAccount(command.entityId(), command, context);
     }
 }

@@ -20,9 +20,19 @@ package org.apache.fineract.commands.domain;
 
 public enum SavingsTransactionKind {
 
-    DEPOSIT, WITHDRAWAL, FORCE_WITHDRAWAL, ADJUSTTRANSACTION, CLOSE, GSIM_CLOSE, ACCOUNT_TRANSFER, ACCOUNT_TRANSFER_REFUND, STANDING_INSTRUCTION_CREATE, STANDING_INSTRUCTION_UPDATE;
+    DEPOSIT, WITHDRAWAL, FORCE_WITHDRAWAL, ADJUSTTRANSACTION, CLOSE, GSIM_CLOSE, ACCOUNT_TRANSFER, ACCOUNT_TRANSFER_REFUND, STANDING_INSTRUCTION_CREATE, STANDING_INSTRUCTION_UPDATE, FIXED_DEPOSIT_CLOSE, FIXED_DEPOSIT_PREMATURE_CLOSE, RECURRING_DEPOSIT_CLOSE, RECURRING_DEPOSIT_PREMATURE_CLOSE;
 
     public static SavingsTransactionKind fromCommand(String action, String entity) {
+        if ("FIXEDDEPOSITACCOUNT".equals(entity)) {
+            if ("CLOSE".equals(action)) return FIXED_DEPOSIT_CLOSE;
+            if ("PREMATURECLOSE".equals(action)) return FIXED_DEPOSIT_PREMATURE_CLOSE;
+            return null;
+        }
+        if ("RECURRINGDEPOSITACCOUNT".equals(entity)) {
+            if ("CLOSE".equals(action)) return RECURRING_DEPOSIT_CLOSE;
+            if ("PREMATURECLOSE".equals(action)) return RECURRING_DEPOSIT_PREMATURE_CLOSE;
+            return null;
+        }
         if ("ACCOUNTTRANSFER".equals(entity)) {
             return switch (action) {
                 case "CREATE" -> ACCOUNT_TRANSFER;
@@ -53,7 +63,8 @@ public enum SavingsTransactionKind {
 
     public boolean isTransferOperation() {
         return this == ACCOUNT_TRANSFER || this == ACCOUNT_TRANSFER_REFUND || this == STANDING_INSTRUCTION_CREATE
-                || this == STANDING_INSTRUCTION_UPDATE;
+                || this == STANDING_INSTRUCTION_UPDATE || this == FIXED_DEPOSIT_CLOSE || this == FIXED_DEPOSIT_PREMATURE_CLOSE
+                || this == RECURRING_DEPOSIT_CLOSE || this == RECURRING_DEPOSIT_PREMATURE_CLOSE;
     }
 
     public boolean accepts(SavingsTransactionOrigin origin) {

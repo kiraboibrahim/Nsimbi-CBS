@@ -2780,6 +2780,7 @@ public class CommandWrapperBuilder {
     }
 
     public CommandWrapperBuilder closeFixedDepositAccount(final Long accountId) {
+        this.savingsTransactionOrigin = SavingsTransactionOrigin.STAFF_API;
         this.actionName = ACTION_CLOSE;
         this.entityName = ENTITY_FIXEDDEPOSITACCOUNT;
         this.entityId = accountId;
@@ -2789,6 +2790,7 @@ public class CommandWrapperBuilder {
     }
 
     public CommandWrapperBuilder prematureCloseFixedDepositAccount(final Long accountId) {
+        this.savingsTransactionOrigin = SavingsTransactionOrigin.STAFF_API;
         this.actionName = ACTION_PREMATURECLOSE;
         this.entityName = ENTITY_FIXEDDEPOSITACCOUNT;
         this.entityId = accountId;
@@ -2943,6 +2945,7 @@ public class CommandWrapperBuilder {
     }
 
     public CommandWrapperBuilder closeRecurringDepositAccount(final Long accountId) {
+        this.savingsTransactionOrigin = SavingsTransactionOrigin.STAFF_API;
         this.actionName = ACTION_CLOSE;
         this.entityName = ENTITY_RECURRINGDEPOSITACCOUNT;
         this.entityId = accountId;
@@ -2961,6 +2964,7 @@ public class CommandWrapperBuilder {
     }
 
     public CommandWrapperBuilder prematureCloseRecurringDepositAccount(final Long accountId) {
+        this.savingsTransactionOrigin = SavingsTransactionOrigin.STAFF_API;
         this.actionName = ACTION_PREMATURECLOSE;
         this.entityName = ENTITY_RECURRINGDEPOSITACCOUNT;
         this.entityId = accountId;

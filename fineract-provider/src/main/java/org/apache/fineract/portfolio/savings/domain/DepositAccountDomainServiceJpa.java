@@ -173,6 +173,20 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
     @Override
     public Long handleFDAccountClosure(final FixedDepositAccount account, final PaymentDetail paymentDetail, final AppUser user,
             final JsonCommand command, final Map<String, Object> changes) {
+        return handleFDAccountClosure(account, paymentDetail, user, command, changes, null);
+    }
+
+    @Transactional
+    @Override
+    public Long handleFDAccountClosure(final FixedDepositAccount account, final PaymentDetail paymentDetail, final AppUser user,
+            final JsonCommand command, final Map<String, Object> changes, final DepositAccountClosurePlan closurePlan) {
+        if (DepositAccountOnClosureType.fromInt(
+                command.integerValueOfParameterNamed(onAccountClosureIdParamName)) == DepositAccountOnClosureType.TRANSFER_TO_SAVINGS
+                && closurePlan == null) {
+            throw new IllegalStateException("Transfer closure requires an authorized closure plan");
+        }
+        if (closurePlan != null) closurePlan.validateCurrent(account);
+
         final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
         final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
@@ -198,7 +212,11 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         final DateTimeFormatter fmt = DateTimeFormatter.ofPattern(command.dateFormat()).withLocale(locale);
         final LocalDate closedDate = command.localDateValueOfParameterNamed(SavingsApiConstants.closedOnDateParamName);
         Long savingsTransactionId = null;
-        account.postMaturityInterest(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+        if (closurePlan == null) {
+            account.postMaturityInterest(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+        } else {
+            account.applyClosureInterest(closurePlan, closedDate);
+        }
         account.setClosedOnDate(closedDate);
         final Integer onAccountClosureId = command.integerValueOfParameterNamed(onAccountClosureIdParamName);
         final DepositAccountOnClosureType onClosureType = DepositAccountOnClosureType.fromInt(onAccountClosureId);
@@ -220,11 +238,12 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
             final SavingsAccount toSavingsAccount = this.depositAccountAssembler.assembleFrom(toSavingsId,
                     DepositAccountType.SAVINGS_DEPOSIT);
             final boolean isExceptionForBalanceCheck = false;
-            final AccountTransferDTO accountTransferDTO = new AccountTransferDTO(closedDate, account.getAccountBalance(),
+            final AccountTransferDTO accountTransferDTO = new AccountTransferDTO(closedDate, closurePlan.netProceeds(),
                     PortfolioAccountType.SAVINGS, PortfolioAccountType.SAVINGS, null, null, transferDescription, locale, fmt, null, null,
                     null, null, null, AccountTransferType.ACCOUNT_TRANSFER.getValue(), null, null, ExternalId.empty(), null,
                     toSavingsAccount, account, isAccountTransfer, isExceptionForBalanceCheck);
-            this.accountTransfersWritePlatformService.transferFunds(accountTransferDTO);
+            this.accountTransfersWritePlatformService.transferFunds(accountTransferDTO,
+                    closurePlan.appliedTo(account, closedDate, account.maturityAdjustedPostingDate(DateUtils.getBusinessLocalDate())));
             updateAlreadyPostedTransactions(existingTransactionIds, account);
             postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
         } else {
@@ -325,6 +344,19 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
     @Override
     public Long handleRDAccountClosure(final RecurringDepositAccount account, final PaymentDetail paymentDetail, final AppUser user,
             final JsonCommand command, final Map<String, Object> changes) {
+        return handleRDAccountClosure(account, paymentDetail, user, command, changes, null);
+    }
+
+    @Transactional
+    @Override
+    public Long handleRDAccountClosure(final RecurringDepositAccount account, final PaymentDetail paymentDetail, final AppUser user,
+            final JsonCommand command, final Map<String, Object> changes, final DepositAccountClosurePlan closurePlan) {
+        if (DepositAccountOnClosureType.fromInt(
+                command.integerValueOfParameterNamed(onAccountClosureIdParamName)) == DepositAccountOnClosureType.TRANSFER_TO_SAVINGS
+                && closurePlan == null) {
+            throw new IllegalStateException("Transfer closure requires an authorized closure plan");
+        }
+        if (closurePlan != null) closurePlan.validateCurrent(account);
 
         final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
@@ -343,7 +375,12 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         final DateTimeFormatter fmt = DateTimeFormatter.ofPattern(command.dateFormat()).withLocale(locale);
         final LocalDate closedDate = command.localDateValueOfParameterNamed(SavingsApiConstants.closedOnDateParamName);
         Long savingsTransactionId = null;
-        account.postMaturityInterest(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, closedDate, postReversals);
+        if (closurePlan == null) {
+            account.postMaturityInterest(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, closedDate,
+                    postReversals);
+        } else {
+            account.applyClosureInterest(closurePlan, closedDate);
+        }
         final BigDecimal transactionAmount = account.getAccountBalance();
         final Integer onAccountClosureId = command.integerValueOfParameterNamed(onAccountClosureIdParamName);
         final DepositAccountOnClosureType onClosureType = DepositAccountOnClosureType.fromInt(onAccountClosureId);
@@ -382,11 +419,12 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
             final SavingsAccount toSavingsAccount = this.depositAccountAssembler.assembleFrom(toSavingsId,
                     DepositAccountType.SAVINGS_DEPOSIT);
             final boolean isExceptionForBalanceCheck = false;
-            final AccountTransferDTO accountTransferDTO = new AccountTransferDTO(closedDate, transactionAmount,
+            final AccountTransferDTO accountTransferDTO = new AccountTransferDTO(closedDate, closurePlan.netProceeds(),
                     PortfolioAccountType.SAVINGS, PortfolioAccountType.SAVINGS, null, null, transferDescription, locale, fmt, null, null,
                     null, null, null, AccountTransferType.ACCOUNT_TRANSFER.getValue(), null, null, ExternalId.empty(), null,
                     toSavingsAccount, account, isRegularTransaction, isExceptionForBalanceCheck);
-            this.accountTransfersWritePlatformService.transferFunds(accountTransferDTO);
+            this.accountTransfersWritePlatformService.transferFunds(accountTransferDTO,
+                    closurePlan.appliedTo(account, closedDate, account.interestPostingUpToDate(DateUtils.getBusinessLocalDate())));
             updateAlreadyPostedTransactions(existingTransactionIds, account);
         } else {
             final SavingsAccountTransaction withdrawal = this.handleWithdrawal(account, fmt, closedDate, account.getAccountBalance(),
@@ -439,6 +477,19 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
     @Override
     public Long handleFDAccountPreMatureClosure(final FixedDepositAccount account, final PaymentDetail paymentDetail, final AppUser user,
             final JsonCommand command, final Map<String, Object> changes) {
+        return handleFDAccountPreMatureClosure(account, paymentDetail, user, command, changes, null);
+    }
+
+    @Transactional
+    @Override
+    public Long handleFDAccountPreMatureClosure(final FixedDepositAccount account, final PaymentDetail paymentDetail, final AppUser user,
+            final JsonCommand command, final Map<String, Object> changes, final DepositAccountClosurePlan closurePlan) {
+        if (DepositAccountOnClosureType.fromInt(
+                command.integerValueOfParameterNamed(onAccountClosureIdParamName)) == DepositAccountOnClosureType.TRANSFER_TO_SAVINGS
+                && closurePlan == null) {
+            throw new IllegalStateException("Transfer closure requires an authorized closure plan");
+        }
+        if (closurePlan != null) closurePlan.validateCurrent(account);
 
         final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
@@ -458,8 +509,12 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         Long savingsTransactionId = null;
 
         // post interest
-        account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                financialYearBeginningMonth);
+        if (closurePlan == null) {
+            account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
+                    financialYearBeginningMonth);
+        } else {
+            account.applyClosureInterest(closurePlan, closedDate);
+        }
 
         final Integer closureTypeValue = command.integerValueOfParameterNamed(DepositsApiConstants.onAccountClosureIdParamName);
         DepositAccountOnClosureType closureType = DepositAccountOnClosureType.fromInt(closureTypeValue);
@@ -470,11 +525,12 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
             final String transferDescription = command.stringValueOfParameterNamed(transferDescriptionParamName);
             final SavingsAccount toSavingsAccount = this.depositAccountAssembler.assembleFrom(toSavingsId,
                     DepositAccountType.SAVINGS_DEPOSIT);
-            final AccountTransferDTO accountTransferDTO = new AccountTransferDTO(closedDate, account.getAccountBalance(),
+            final AccountTransferDTO accountTransferDTO = new AccountTransferDTO(closedDate, closurePlan.netProceeds(),
                     PortfolioAccountType.SAVINGS, PortfolioAccountType.SAVINGS, null, null, transferDescription, locale, fmt, null, null,
                     null, null, null, AccountTransferType.ACCOUNT_TRANSFER.getValue(), null, null, ExternalId.empty(), null,
                     toSavingsAccount, account, isRegularTransaction, isExceptionForBalanceCheck);
-            this.accountTransfersWritePlatformService.transferFunds(accountTransferDTO);
+            this.accountTransfersWritePlatformService.transferFunds(accountTransferDTO,
+                    closurePlan.appliedTo(account, closedDate, account.maturityAdjustedPostingDate(DateUtils.getBusinessLocalDate())));
             updateAlreadyPostedTransactions(existingTransactionIds, account);
         } else {
             final SavingsAccountTransaction withdrawal = this.handleWithdrawal(account, fmt, closedDate, account.getAccountBalance(),
@@ -494,6 +550,19 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
     @Override
     public Long handleRDAccountPreMatureClosure(final RecurringDepositAccount account, final PaymentDetail paymentDetail,
             final AppUser user, final JsonCommand command, final Map<String, Object> changes) {
+        return handleRDAccountPreMatureClosure(account, paymentDetail, user, command, changes, null);
+    }
+
+    @Transactional
+    @Override
+    public Long handleRDAccountPreMatureClosure(final RecurringDepositAccount account, final PaymentDetail paymentDetail,
+            final AppUser user, final JsonCommand command, final Map<String, Object> changes, final DepositAccountClosurePlan closurePlan) {
+        if (DepositAccountOnClosureType.fromInt(
+                command.integerValueOfParameterNamed(onAccountClosureIdParamName)) == DepositAccountOnClosureType.TRANSFER_TO_SAVINGS
+                && closurePlan == null) {
+            throw new IllegalStateException("Transfer closure requires an authorized closure plan");
+        }
+        if (closurePlan != null) closurePlan.validateCurrent(account);
 
         final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
@@ -514,8 +583,12 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         final DateTimeFormatter fmt = DateTimeFormatter.ofPattern(command.dateFormat()).withLocale(locale);
         Long savingsTransactionId = null;
         // post interest
-        account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                financialYearBeginningMonth, postReversals);
+        if (closurePlan == null) {
+            account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
+                    financialYearBeginningMonth, postReversals);
+        } else {
+            account.applyClosureInterest(closurePlan, closedDate);
+        }
 
         final Integer closureTypeValue = command.integerValueOfParameterNamed(DepositsApiConstants.onAccountClosureIdParamName);
         DepositAccountOnClosureType closureType = DepositAccountOnClosureType.fromInt(closureTypeValue);
@@ -526,11 +599,12 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
             final String transferDescription = command.stringValueOfParameterNamed(transferDescriptionParamName);
             final SavingsAccount toSavingsAccount = this.depositAccountAssembler.assembleFrom(toSavingsId,
                     DepositAccountType.SAVINGS_DEPOSIT);
-            final AccountTransferDTO accountTransferDTO = new AccountTransferDTO(closedDate, account.getAccountBalance(),
+            final AccountTransferDTO accountTransferDTO = new AccountTransferDTO(closedDate, closurePlan.netProceeds(),
                     PortfolioAccountType.SAVINGS, PortfolioAccountType.SAVINGS, null, null, transferDescription, locale, fmt, null, null,
                     null, null, null, AccountTransferType.ACCOUNT_TRANSFER.getValue(), null, null, ExternalId.empty(), null,
                     toSavingsAccount, account, isRegularTransaction, isExceptionForBalanceCheck);
-            this.accountTransfersWritePlatformService.transferFunds(accountTransferDTO);
+            this.accountTransfersWritePlatformService.transferFunds(accountTransferDTO,
+                    closurePlan.appliedTo(account, closedDate, account.interestPostingUpToDate(DateUtils.getBusinessLocalDate())));
             updateAlreadyPostedTransactions(existingTransactionIds, account);
         } else {
             final SavingsAccountTransaction withdrawal = this.handleWithdrawal(account, fmt, closedDate, account.getAccountBalance(),
