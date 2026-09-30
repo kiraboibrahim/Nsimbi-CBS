@@ -591,14 +591,11 @@ public final class SavingsAccountTransaction extends AbstractAuditableWithUTCDat
     }
 
     public void updateCumulativeBalanceAndDates(final MonetaryCurrency currency, final LocalDate endOfBalanceDate) {
-        // balance end date should not be before transaction date
-        if (endOfBalanceDate != null && DateUtils.isBefore(endOfBalanceDate, this.getTransactionDate())) {
-            this.balanceEndDate = this.getTransactionDate();
-        } else {
-            this.balanceEndDate = endOfBalanceDate;
-        }
-        this.balanceNumberOfDays = LocalDateInterval.create(getTransactionDate(), endOfBalanceDate).daysInPeriodInclusiveOfEndDate();
-        this.cumulativeBalance = Money.of(currency, this.runningBalance).multipliedBy(this.balanceNumberOfDays).getAmount();
+        var calculation = SavingsAccountEndOfDayBalance.calculate(getTransactionDate(), endOfBalanceDate,
+                Money.of(currency, this.runningBalance));
+        this.balanceEndDate = calculation.endDate();
+        this.balanceNumberOfDays = calculation.numberOfDays();
+        this.cumulativeBalance = calculation.cumulativeBalance();
     }
 
     public boolean isAcceptableForDailyBalance(final LocalDateInterval interestPeriodInterval) {
