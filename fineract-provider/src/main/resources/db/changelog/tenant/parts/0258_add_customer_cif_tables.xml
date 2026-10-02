@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet author="fineract" id="1">
+        <addColumn tableName="m_client">
+            <column defaultValue="INDIVIDUAL" name="customer_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="false" name="has_loan_limit" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rejection_reason" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet author="fineract" id="2">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_customer_individual"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_customer_individual">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_customer_individual"/>
+            </column>
+            <column name="client_id" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_customer_individual_client"/>
+            </column>
+            <column name="salutation" type="VARCHAR(20)"/>
+            <column name="marital_status" type="VARCHAR(30)"/>
+            <column defaultValueBoolean="false" name="is_dependent" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="false" name="is_pwd" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country_of_birth" type="VARCHAR(100)"/>
+            <column defaultValue="Ugandan" name="nationality" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="home_ownership" type="VARCHAR(30)"/>
+            <column name="card_number" type="VARCHAR(100)"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="client_id"
+                                 baseTableName="m_customer_individual"
+                                 constraintName="fk_customer_individual_client"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="id"
+                                 referencedTableName="m_client"/>
+    </changeSet>
+
+    <changeSet author="fineract" id="3">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_customer_group"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_customer_group">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_customer_group"/>
+            </column>
+            <column name="client_id" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_customer_group_client"/>
+            </column>
+            <column name="group_name" type="VARCHAR(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValue="Members" name="group_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="registration_number" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="client_id"
+                                 baseTableName="m_customer_group"
+                                 constraintName="fk_customer_group_client"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="id"
+                                 referencedTableName="m_client"/>
+    </changeSet>
+
+    <changeSet author="fineract" id="4">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_customer_institution"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_customer_institution">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_customer_institution"/>
+            </column>
+            <column name="client_id" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_customer_institution_client"/>
+            </column>
+            <column name="institution_name" type="VARCHAR(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="registration_number" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="registration_date" type="DATE"/>
+            <column name="tin_number" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="business_type" type="VARCHAR(100)"/>
+            <column name="institution_category" type="VARCHAR(100)"/>
+            <column name="residence_ownership" type="VARCHAR(50)"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="client_id"
+                                 baseTableName="m_customer_institution"
+                                 constraintName="fk_customer_institution_client"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="id"
+                                 referencedTableName="m_client"/>
+    </changeSet>
+
+    <changeSet author="fineract" id="5">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_customer_joint"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_customer_joint">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_customer_joint"/>
+            </column>
+            <column name="client_id" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_customer_joint_client"/>
+            </column>
+            <column name="joint_name" type="VARCHAR(150)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="client_id"
+                                 baseTableName="m_customer_joint"
+                                 constraintName="fk_customer_joint_client"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="id"
+                                 referencedTableName="m_client"/>
+    </changeSet>
+
+    <changeSet author="fineract" id="6">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_customer_next_of_kin"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_customer_next_of_kin">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_customer_next_of_kin"/>
+            </column>
+            <column name="client_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="second_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phone" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="physical_address" type="TEXT"/>
+            <column name="relationship" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="0.00" name="allocation_percentage" type="DECIMAL(5, 2)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="client_id"
+                                 baseTableName="m_customer_next_of_kin"
+                                 constraintName="fk_customer_nok_client"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="id"
+                                 referencedTableName="m_client"/>
+    </changeSet>
+
+    <changeSet author="fineract" id="7">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_customer_employment_income"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_customer_employment_income">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_customer_emp_income"/>
+            </column>
+            <column name="client_id" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_customer_emp_income_client"/>
+            </column>
+            <column name="occupation" type="VARCHAR(100)"/>
+            <column name="employer_name" type="VARCHAR(150)"/>
+            <column name="monthly_income" type="DECIMAL(19, 4)"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="client_id"
+                                 baseTableName="m_customer_employment_income"
+                                 constraintName="fk_customer_emp_income_client"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="id"
+                                 referencedTableName="m_client"/>
+    </changeSet>
+
+    <changeSet author="fineract" id="8">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_customer_external_bank"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_customer_external_bank">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_customer_external_bank"/>
+            </column>
+            <column name="client_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="bank_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="branch_name" type="VARCHAR(100)"/>
+            <column name="account_number" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="account_name" type="VARCHAR(150)"/>
+        </createTable>
+        <addForeignKeyConstraint baseColumnNames="client_id"
+                                 baseTableName="m_customer_external_bank"
+                                 constraintName="fk_customer_ext_bank_client"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="id"
+                                 referencedTableName="m_client"/>
+    </changeSet>
+
+</databaseChangeLog>

@@ -112,6 +112,16 @@ public class ClientApiConstants {
     public static final String clientClassificationParamName = "clientClassification";
     public static final String legalFormIdParamName = "legalFormId";
     public static final String legalFormParamName = "legalForm";
+    public static final String customerTypeParamName = "customerType";
+    public static final String hasLoanLimitParamName = "hasLoanLimit";
+    public static final String rejectionReasonParamName = "rejectionReason";
+    public static final String customerIndividualParamName = "customerIndividual";
+    public static final String customerGroupParamName = "customerGroup";
+    public static final String customerInstitutionParamName = "customerInstitution";
+    public static final String customerJointParamName = "customerJoint";
+    public static final String nextOfKinParamName = "nextOfKin";
+    public static final String employmentIncomeParamName = "employmentIncome";
+    public static final String externalBanksParamName = "externalBanks";
     // request parameters for payment details
     public static final String paymentTypeIdParamName = "paymentTypeId";
     public static final String transactionAccountNumberParamName = "accountNumber";
@@ -195,7 +205,10 @@ public class ClientApiConstants {
             officeNameParamName, transferToOfficeIdParamName, transferToOfficeNameParamName, hierarchyParamName, imageIdParamName,
             imagePresentParamName, staffIdParamName, staffNameParamName, timelineParamName, groupsParamName, officeOptionsParamName,
             staffOptionsParamName, dateOfBirthParamName, genderParamName, clientTypeParamName, clientClassificationParamName,
-            legalFormParamName, clientNonPersonDetailsParamName, isStaffParamName, legalFormParamName));
+            legalFormParamName, clientNonPersonDetailsParamName, isStaffParamName, legalFormParamName,
+            customerTypeParamName, hasLoanLimitParamName, rejectionReasonParamName, customerIndividualParamName,
+            customerGroupParamName, customerInstitutionParamName, customerJointParamName, nextOfKinParamName,
+            employmentIncomeParamName, externalBanksParamName));
 
     protected static final Set<String> CLIENT_CHARGES_RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList(chargeIdParamName,
             clientIdParamName, chargeNameParamName, penaltyParamName, chargeTimeTypeParamName, dueAsOfDateParamName,

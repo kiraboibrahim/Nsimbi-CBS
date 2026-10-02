@@ -588,6 +588,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
 
             builder.append(
                     "c.id as id, c.account_no as accountNo, c.external_id as externalId, c.status_enum as statusEnum,c.sub_status as subStatus, ");
+            builder.append("c.customer_type as customerType, c.has_loan_limit as hasLoanLimit, c.rejection_reason as rejectionReason, ");
             builder.append(
                     "cvSubStatus.code_value as subStatusValue,cvSubStatus.code_description as subStatusDesc,c.office_id as officeId, o.name as officeName, ");
             builder.append("c.transfer_to_office_id as transferToOfficeId, transferToOffice.name as transferToOfficeName, ");
@@ -744,10 +745,18 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
                     submittedByLastname, activationDate, activatedByUsername, activatedByFirstname, activatedByLastname, closedOnDate,
                     closedByUsername, closedByFirstname, closedByLastname);
 
-            return ClientData.instance(accountNo, status, subStatus, officeId, officeName, transferToOfficeId, transferToOfficeName, id,
+            final String customerType = rs.getString("customerType");
+            final boolean hasLoanLimit = rs.getBoolean("hasLoanLimit");
+            final String rejectionReason = rs.getString("rejectionReason");
+
+            final ClientData clientData = ClientData.instance(accountNo, status, subStatus, officeId, officeName, transferToOfficeId, transferToOfficeName, id,
                     firstname, middlename, lastname, fullname, displayName, externalId, mobileNo, emailAddress, dateOfBirth, gender,
                     activationDate, imageId, staffId, staffName, timeline, savingsProductId, savingsProductName, savingsAccountId,
                     clienttype, classification, legalForm, clientNonPerson, isStaff);
+            clientData.setCustomerType(customerType);
+            clientData.setHasLoanLimit(hasLoanLimit);
+            clientData.setRejectionReason(rejectionReason);
+            return clientData;
 
         }
     }

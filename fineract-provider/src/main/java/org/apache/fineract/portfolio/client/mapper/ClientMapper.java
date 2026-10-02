@@ -18,14 +18,30 @@
  */
 package org.apache.fineract.portfolio.client.mapper;
 
+import java.util.Collections;
+import java.util.List;
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.core.config.MapstructMapperConfig;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.portfolio.client.data.ClientData;
 import org.apache.fineract.portfolio.client.data.ClientTimelineData;
+import org.apache.fineract.portfolio.client.data.CustomerEmploymentIncomeData;
+import org.apache.fineract.portfolio.client.data.CustomerExternalBankData;
+import org.apache.fineract.portfolio.client.data.CustomerGroupData;
+import org.apache.fineract.portfolio.client.data.CustomerIndividualData;
+import org.apache.fineract.portfolio.client.data.CustomerInstitutionData;
+import org.apache.fineract.portfolio.client.data.CustomerJointData;
+import org.apache.fineract.portfolio.client.data.CustomerNextOfKinData;
 import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.domain.ClientEnumerations;
+import org.apache.fineract.portfolio.client.domain.CustomerEmploymentIncome;
+import org.apache.fineract.portfolio.client.domain.CustomerExternalBank;
+import org.apache.fineract.portfolio.client.domain.CustomerGroup;
+import org.apache.fineract.portfolio.client.domain.CustomerIndividual;
+import org.apache.fineract.portfolio.client.domain.CustomerInstitution;
+import org.apache.fineract.portfolio.client.domain.CustomerJoint;
+import org.apache.fineract.portfolio.client.domain.CustomerNextOfKin;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -80,6 +96,16 @@ public interface ClientMapper {
     @Mapping(target = "legalFormId", ignore = true)
     @Mapping(target = "clientCollateralManagements", ignore = true)
     @Mapping(target = "groups", ignore = true)
+    @Mapping(target = "customerType", source = "source", qualifiedByName = "clientCustomerType")
+    @Mapping(target = "hasLoanLimit", source = "hasLoanLimit")
+    @Mapping(target = "rejectionReason", source = "rejectionReasonText")
+    @Mapping(target = "customerIndividual", source = "source", qualifiedByName = "mapCustomerIndividual")
+    @Mapping(target = "customerGroup", source = "source", qualifiedByName = "mapCustomerGroup")
+    @Mapping(target = "customerInstitution", source = "source", qualifiedByName = "mapCustomerInstitution")
+    @Mapping(target = "customerJoint", source = "source", qualifiedByName = "mapCustomerJoint")
+    @Mapping(target = "nextOfKin", source = "source", qualifiedByName = "mapNextOfKin")
+    @Mapping(target = "employmentIncome", source = "source", qualifiedByName = "mapEmploymentIncome")
+    @Mapping(target = "externalBanks", source = "source", qualifiedByName = "mapExternalBanks")
     ClientData map(Client source);
 
     @Named("clientTypeCode")
@@ -154,6 +180,80 @@ public interface ClientMapper {
     @Named("clientIsStaff")
     default Boolean clientIsStaff(Client client) {
         return Boolean.valueOf(client.isStaff());
+    }
+
+    @Named("clientCustomerType")
+    default String clientCustomerType(Client client) {
+        return client.getCustomerType() != null ? client.getCustomerType().name() : null;
+    }
+
+    @Named("mapCustomerIndividual")
+    default CustomerIndividualData mapCustomerIndividual(Client client) {
+        final CustomerIndividual ind = client.getCustomerIndividual();
+        if (ind == null) {
+            return null;
+        }
+        return new CustomerIndividualData(ind.getId(), client.getId(), ind.getSalutation(), ind.getMaritalStatus(),
+                ind.isDependent(), ind.isPwd(), ind.getCountryOfBirth(), ind.getNationality(), ind.getHomeOwnership(),
+                ind.getCardNumber());
+    }
+
+    @Named("mapCustomerGroup")
+    default CustomerGroupData mapCustomerGroup(Client client) {
+        final CustomerGroup grp = client.getCustomerGroup();
+        if (grp == null) {
+            return null;
+        }
+        return new CustomerGroupData(grp.getId(), client.getId(), grp.getGroupName(), grp.getGroupType(), grp.getRegistrationNumber());
+    }
+
+    @Named("mapCustomerInstitution")
+    default CustomerInstitutionData mapCustomerInstitution(Client client) {
+        final CustomerInstitution inst = client.getCustomerInstitution();
+        if (inst == null) {
+            return null;
+        }
+        return new CustomerInstitutionData(inst.getId(), client.getId(), inst.getInstitutionName(), inst.getRegistrationNumber(),
+                inst.getRegistrationDate(), inst.getTinNumber(), inst.getBusinessType(), inst.getInstitutionCategory(),
+                inst.getResidenceOwnership());
+    }
+
+    @Named("mapCustomerJoint")
+    default CustomerJointData mapCustomerJoint(Client client) {
+        final CustomerJoint joint = client.getCustomerJoint();
+        if (joint == null) {
+            return null;
+        }
+        return new CustomerJointData(joint.getId(), client.getId(), joint.getJointName());
+    }
+
+    @Named("mapNextOfKin")
+    default List<CustomerNextOfKinData> mapNextOfKin(Client client) {
+        if (client.getNextOfKin() == null || client.getNextOfKin().isEmpty()) {
+            return Collections.emptyList();
+        }
+        return client.getNextOfKin().stream().map(nok -> new CustomerNextOfKinData(nok.getId(), client.getId(),
+                nok.getFirstName(), nok.getSecondName(), nok.getPhone(), nok.getPhysicalAddress(),
+                nok.getRelationship(), nok.getAllocationPercentage())).toList();
+    }
+
+    @Named("mapEmploymentIncome")
+    default CustomerEmploymentIncomeData mapEmploymentIncome(Client client) {
+        final CustomerEmploymentIncome emp = client.getCustomerEmploymentIncome();
+        if (emp == null) {
+            return null;
+        }
+        return new CustomerEmploymentIncomeData(emp.getId(), client.getId(), emp.getOccupation(), emp.getEmployerName(),
+                emp.getMonthlyIncome());
+    }
+
+    @Named("mapExternalBanks")
+    default List<CustomerExternalBankData> mapExternalBanks(Client client) {
+        if (client.getExternalBanks() == null || client.getExternalBanks().isEmpty()) {
+            return Collections.emptyList();
+        }
+        return client.getExternalBanks().stream().map(bank -> new CustomerExternalBankData(bank.getId(), client.getId(),
+                bank.getBankName(), bank.getBranchName(), bank.getAccountNumber(), bank.getAccountName())).toList();
     }
 
 }

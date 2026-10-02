@@ -20,8 +20,10 @@ package org.apache.fineract.portfolio.client.data;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,6 +48,7 @@ import org.apache.fineract.infrastructure.dataqueries.data.StatusEnum;
 import org.apache.fineract.infrastructure.dataqueries.domain.EntityDatatableChecks;
 import org.apache.fineract.infrastructure.dataqueries.domain.EntityDatatableChecksRepository;
 import org.apache.fineract.portfolio.client.api.ClientApiConstants;
+import org.apache.fineract.portfolio.client.domain.CustomerType;
 import org.apache.fineract.portfolio.client.domain.LegalForm;
 import org.apache.fineract.validation.constraints.DateFormatValidator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -256,6 +259,8 @@ public final class ClientDataValidator {
         List<ApiParameterError> dataValidationErrorsForClientNonPerson = getDataValidationErrorsForCreateOnClientNonPerson(
                 element.getAsJsonObject().get(ClientApiConstants.clientNonPersonDetailsParamName));
         dataValidationErrors.addAll(dataValidationErrorsForClientNonPerson);
+
+        validateCustomerCifDetails(element, dataValidationErrors);
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
     }
@@ -549,6 +554,19 @@ public final class ClientDataValidator {
                 element.getAsJsonObject().get(ClientApiConstants.clientNonPersonDetailsParamName));
         boolean atLeastOneParameterPassedForClientNonPersonUpdate = (boolean) parameterUpdateStatusDetails.get("parameterUpdateStatus");
 
+        if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerTypeParamName, element)
+                || this.fromApiJsonHelper.parameterExists(ClientApiConstants.hasLoanLimitParamName, element)
+                || this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerIndividualParamName, element)
+                || this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerGroupParamName, element)
+                || this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerInstitutionParamName, element)
+                || this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerJointParamName, element)
+                || this.fromApiJsonHelper.parameterExists(ClientApiConstants.nextOfKinParamName, element)
+                || this.fromApiJsonHelper.parameterExists(ClientApiConstants.employmentIncomeParamName, element)
+                || this.fromApiJsonHelper.parameterExists(ClientApiConstants.externalBanksParamName, element)) {
+            atLeastOneParameterPassedForUpdate = true;
+            validateCustomerCifDetails(element, dataValidationErrors);
+        }
+
         if (!atLeastOneParameterPassedForUpdate && !atLeastOneParameterPassedForClientNonPersonUpdate) {
             final Object forceError = null;
             baseDataValidator.reset().anyOfNotNull(forceError);
@@ -791,8 +809,15 @@ public final class ClientDataValidator {
         baseDataValidator.reset().parameter(ClientApiConstants.rejectionDateParamName).value(rejectionDate).notNull();
 
         final Long rejectionReasonId = this.fromApiJsonHelper.extractLongNamed(ClientApiConstants.rejectionReasonIdParamName, element);
-        baseDataValidator.reset().parameter(ClientApiConstants.rejectionReasonIdParamName).value(rejectionReasonId).notNull()
-                .longGreaterThanZero();
+        final String rejectionReasonText = this.fromApiJsonHelper.extractStringNamed(ClientApiConstants.rejectionReasonParamName, element);
+        if (rejectionReasonId != null) {
+            baseDataValidator.reset().parameter(ClientApiConstants.rejectionReasonIdParamName).value(rejectionReasonId).longGreaterThanZero();
+        } else if (StringUtils.isNotBlank(rejectionReasonText)) {
+            baseDataValidator.reset().parameter(ClientApiConstants.rejectionReasonParamName).value(rejectionReasonText).notBlank();
+        } else {
+            baseDataValidator.reset().parameter(ClientApiConstants.rejectionReasonIdParamName).value(rejectionReasonId).notNull()
+                    .longGreaterThanZero();
+        }
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
 
@@ -933,5 +958,141 @@ public final class ClientDataValidator {
         }
         final LegalForm legalForm = LegalForm.fromInt(legalFormId);
         return legalForm != null ? legalForm.getLabel().toUpperCase() : null;
+    }
+
+    private void validateCustomerCifDetails(final JsonElement element, final List<ApiParameterError> dataValidationErrors) {
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
+                .resource(ClientApiCollectionConstants.CLIENT_RESOURCE_NAME);
+
+        CustomerType customerType = null;
+        if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerTypeParamName, element)) {
+            final String customerTypeStr = this.fromApiJsonHelper.extractStringNamed(ClientApiConstants.customerTypeParamName, element);
+            if (StringUtils.isNotBlank(customerTypeStr)) {
+                customerType = CustomerType.fromString(customerTypeStr);
+                if (customerType == null) {
+                    baseDataValidator.reset().parameter(ClientApiConstants.customerTypeParamName).value(customerTypeStr)
+                            .failWithCode("invalid.customer.type", "The customerType value '" + customerTypeStr + "' is invalid.");
+                }
+            }
+        }
+
+        // NIN validation: 14 alphanumeric characters per Uganda NIRA standard
+        if (this.fromApiJsonHelper.parameterExists("nin", element)) {
+            final String nin = this.fromApiJsonHelper.extractStringNamed("nin", element);
+            if (StringUtils.isNotBlank(nin) && !nin.matches("^[A-Za-z0-9]{14}$")) {
+                baseDataValidator.reset().parameter("nin").value(nin)
+                        .failWithCode("invalid.nin.format", "NIN must be 14 alphanumeric characters");
+            }
+        }
+
+        if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerIndividualParamName, element)) {
+            final JsonElement indElement = element.getAsJsonObject().get(ClientApiConstants.customerIndividualParamName);
+            if (indElement != null && indElement.isJsonObject()) {
+                final JsonObject indObj = indElement.getAsJsonObject();
+                if (indObj.has("nin") && !indObj.get("nin").isJsonNull()) {
+                    final String nin = indObj.get("nin").getAsString();
+                    if (StringUtils.isNotBlank(nin) && !nin.matches("^[A-Za-z0-9]{14}$")) {
+                        baseDataValidator.reset().parameter("nin").value(nin)
+                                .failWithCode("invalid.nin.format", "NIN must be 14 alphanumeric characters");
+                    }
+                }
+                if (indObj.has("cardNumber") && !indObj.get("cardNumber").isJsonNull() && indObj.has("isNin")
+                        && indObj.get("isNin").getAsBoolean()) {
+                    final String cardNo = indObj.get("cardNumber").getAsString();
+                    if (StringUtils.isNotBlank(cardNo) && !cardNo.matches("^[A-Za-z0-9]{14}$")) {
+                        baseDataValidator.reset().parameter("cardNumber").value(cardNo)
+                                .failWithCode("invalid.nin.format", "NIN must be 14 alphanumeric characters");
+                    }
+                }
+            }
+        }
+
+        // Next of Kin validation
+        if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.nextOfKinParamName, element)) {
+            final JsonElement nokElement = element.getAsJsonObject().get(ClientApiConstants.nextOfKinParamName);
+            if (nokElement != null && nokElement.isJsonArray()) {
+                final JsonArray nokArray = nokElement.getAsJsonArray();
+                BigDecimal totalAllocation = BigDecimal.ZERO;
+                for (int i = 0; i < nokArray.size(); i++) {
+                    final JsonElement item = nokArray.get(i);
+                    if (item.isJsonObject()) {
+                        final JsonObject nokObj = item.getAsJsonObject();
+                        if (!nokObj.has("firstName") || StringUtils.isBlank(nokObj.get("firstName").getAsString())) {
+                            baseDataValidator.reset().parameter(ClientApiConstants.nextOfKinParamName + "[" + i + "].firstName")
+                                    .failWithCode("cannot.be.blank", "Next of kin first name cannot be blank");
+                        }
+                        if (!nokObj.has("secondName") || StringUtils.isBlank(nokObj.get("secondName").getAsString())) {
+                            baseDataValidator.reset().parameter(ClientApiConstants.nextOfKinParamName + "[" + i + "].secondName")
+                                    .failWithCode("cannot.be.blank", "Next of kin second name cannot be blank");
+                        }
+                        if (!nokObj.has("relationship") || StringUtils.isBlank(nokObj.get("relationship").getAsString())) {
+                            baseDataValidator.reset().parameter(ClientApiConstants.nextOfKinParamName + "[" + i + "].relationship")
+                                    .failWithCode("cannot.be.blank", "Next of kin relationship cannot be blank");
+                        }
+                        if (nokObj.has("allocationPercentage") && !nokObj.get("allocationPercentage").isJsonNull()) {
+                            final BigDecimal alloc = nokObj.get("allocationPercentage").getAsBigDecimal();
+                            if (alloc.compareTo(BigDecimal.ZERO) < 0) {
+                                baseDataValidator.reset().parameter(ClientApiConstants.nextOfKinParamName + "[" + i + "].allocationPercentage")
+                                        .failWithCode("cannot.be.negative", "Allocation percentage cannot be negative");
+                            }
+                            totalAllocation = totalAllocation.add(alloc);
+                        }
+                    }
+                }
+                if (totalAllocation.compareTo(new BigDecimal("100.00")) > 0) {
+                    baseDataValidator.reset().parameter(ClientApiConstants.nextOfKinParamName + ".allocationPercentage")
+                            .value(totalAllocation)
+                            .failWithCode("total.allocation.exceeds.100", "Total next of kin allocation percentage cannot exceed 100%");
+                }
+            }
+        }
+
+        // Group KYC validation
+        if (CustomerType.GROUP.equals(customerType)
+                && this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerGroupParamName, element)) {
+            final JsonElement groupElement = element.getAsJsonObject().get(ClientApiConstants.customerGroupParamName);
+            if (groupElement != null && groupElement.isJsonObject()) {
+                final JsonObject gObj = groupElement.getAsJsonObject();
+                if (!gObj.has("groupName") || StringUtils.isBlank(gObj.get("groupName").getAsString())) {
+                    baseDataValidator.reset().parameter("groupName").failWithCode("cannot.be.blank", "Group name is mandatory");
+                }
+                if (!gObj.has("registrationNumber") || StringUtils.isBlank(gObj.get("registrationNumber").getAsString())) {
+                    baseDataValidator.reset().parameter("registrationNumber").failWithCode("cannot.be.blank",
+                            "Registration number is mandatory");
+                }
+            }
+        }
+
+        // Institution KYC validation
+        if (CustomerType.INSTITUTION.equals(customerType)
+                && this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerInstitutionParamName, element)) {
+            final JsonElement instElement = element.getAsJsonObject().get(ClientApiConstants.customerInstitutionParamName);
+            if (instElement != null && instElement.isJsonObject()) {
+                final JsonObject iObj = instElement.getAsJsonObject();
+                if (!iObj.has("institutionName") || StringUtils.isBlank(iObj.get("institutionName").getAsString())) {
+                    baseDataValidator.reset().parameter("institutionName").failWithCode("cannot.be.blank",
+                            "Institution name is mandatory");
+                }
+                if (!iObj.has("tinNumber") || StringUtils.isBlank(iObj.get("tinNumber").getAsString())) {
+                    baseDataValidator.reset().parameter("tinNumber").failWithCode("cannot.be.blank", "TIN number is mandatory");
+                }
+                if (!iObj.has("registrationNumber") || StringUtils.isBlank(iObj.get("registrationNumber").getAsString())) {
+                    baseDataValidator.reset().parameter("registrationNumber").failWithCode("cannot.be.blank",
+                            "Registration number is mandatory");
+                }
+            }
+        }
+
+        // Joint KYC validation
+        if (CustomerType.JOINT.equals(customerType)
+                && this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerJointParamName, element)) {
+            final JsonElement jointElement = element.getAsJsonObject().get(ClientApiConstants.customerJointParamName);
+            if (jointElement != null && jointElement.isJsonObject()) {
+                final JsonObject jObj = jointElement.getAsJsonObject();
+                if (!jObj.has("jointName") || StringUtils.isBlank(jObj.get("jointName").getAsString())) {
+                    baseDataValidator.reset().parameter("jointName").failWithCode("cannot.be.blank", "Joint name is mandatory");
+                }
+            }
+        }
     }
 }

@@ -69,15 +69,26 @@ public class AccountNumberGenerator implements AccountNumberGeneratorService {
     private final WorkingCapitalLoanRepository workingCapitalLoanRepository;
 
     public String generate(Client client, AccountNumberFormat accountNumberFormat) {
+        if (accountNumberFormat == null) {
+            return generateDeterministicMemberNumber(client);
+        }
         Map<String, String> propertyMap = new HashMap<>();
         propertyMap.put(ID, client.getId().toString());
-        propertyMap.put(OFFICE_NAME, client.getOffice().getName());
+        propertyMap.put(OFFICE_NAME, client.getOffice() != null ? client.getOffice().getName() : "");
         propertyMap.put(ENTITY_TYPE, "client");
         CodeValue clientType = client.clientType();
         if (clientType != null) {
             propertyMap.put(CLIENT_TYPE, clientType.getLabel());
         }
         return generateAccountNumber(propertyMap, accountNumberFormat);
+    }
+
+    public String generateDeterministicMemberNumber(Client client) {
+        final long officeId = client.getOffice() != null && client.getOffice().getId() != null ? client.getOffice().getId() : 1L;
+        final long clientId = client.getId() != null ? client.getId() : 1L;
+        final String branchPrefix = String.format("%04d", officeId % 10000);
+        final String clientSeq = String.format("%07d", clientId % 10000000);
+        return branchPrefix + clientSeq;
     }
 
     public String generate(Loan loan, AccountNumberFormat accountNumberFormat) {

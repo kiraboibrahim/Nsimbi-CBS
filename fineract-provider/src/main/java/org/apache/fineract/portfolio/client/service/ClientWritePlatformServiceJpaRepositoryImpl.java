@@ -18,14 +18,19 @@
  */
 package org.apache.fineract.portfolio.client.service;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import jakarta.persistence.PersistenceException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -44,6 +49,7 @@ import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.apache.fineract.infrastructure.core.domain.ExternalId;
 import org.apache.fineract.infrastructure.core.exception.ErrorHandler;
+import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
@@ -75,6 +81,21 @@ import org.apache.fineract.portfolio.client.domain.ClientNonPerson;
 import org.apache.fineract.portfolio.client.domain.ClientNonPersonRepositoryWrapper;
 import org.apache.fineract.portfolio.client.domain.ClientRepositoryWrapper;
 import org.apache.fineract.portfolio.client.domain.ClientStatus;
+import org.apache.fineract.portfolio.client.domain.CustomerEmploymentIncome;
+import org.apache.fineract.portfolio.client.domain.CustomerEmploymentIncomeRepository;
+import org.apache.fineract.portfolio.client.domain.CustomerExternalBank;
+import org.apache.fineract.portfolio.client.domain.CustomerExternalBankRepository;
+import org.apache.fineract.portfolio.client.domain.CustomerGroup;
+import org.apache.fineract.portfolio.client.domain.CustomerGroupRepository;
+import org.apache.fineract.portfolio.client.domain.CustomerIndividual;
+import org.apache.fineract.portfolio.client.domain.CustomerIndividualRepository;
+import org.apache.fineract.portfolio.client.domain.CustomerInstitution;
+import org.apache.fineract.portfolio.client.domain.CustomerInstitutionRepository;
+import org.apache.fineract.portfolio.client.domain.CustomerJoint;
+import org.apache.fineract.portfolio.client.domain.CustomerJointRepository;
+import org.apache.fineract.portfolio.client.domain.CustomerNextOfKin;
+import org.apache.fineract.portfolio.client.domain.CustomerNextOfKinRepository;
+import org.apache.fineract.portfolio.client.domain.CustomerType;
 import org.apache.fineract.portfolio.client.domain.LegalForm;
 import org.apache.fineract.portfolio.client.exception.ClientActiveForUpdateException;
 import org.apache.fineract.portfolio.client.exception.ClientHasNoStaffException;
@@ -129,6 +150,13 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
     private final BusinessEventNotifierService businessEventNotifierService;
     private final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
     private final ExternalIdFactory externalIdFactory;
+    private final CustomerIndividualRepository customerIndividualRepository;
+    private final CustomerGroupRepository customerGroupRepository;
+    private final CustomerInstitutionRepository customerInstitutionRepository;
+    private final CustomerJointRepository customerJointRepository;
+    private final CustomerNextOfKinRepository customerNextOfKinRepository;
+    private final CustomerEmploymentIncomeRepository customerEmploymentIncomeRepository;
+    private final CustomerExternalBankRepository customerExternalBankRepository;
 
     @Transactional
     @Override
@@ -320,6 +348,8 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
             if (isEntity) {
                 extractAndCreateClientNonPerson(newClient, command);
             }
+
+            extractAndCreateCustomerCifDetails(newClient, command);
 
             if (isAddressEnabled) {
                 this.addressWritePlatformService.addNewClientAddress(newClient, command);
@@ -706,14 +736,18 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
             this.fromApiJsonDeserializer.validateActivation(command);
 
             final Client client = this.clientRepository.findOneWithNotFoundDetection(clientId, true);
+            final AppUser currentUser = this.context.authenticatedUser();
+            if (client.getCreatedBy().isPresent() && Objects.equals(client.getCreatedBy().get(), currentUser.getId())) {
+                throw new GeneralPlatformDomainRuleException("error.msg.client.approver.cannot.be.maker",
+                        "A user cannot approve their own created customer record");
+            }
+
             validateParentGroupRulesBeforeClientActivation(client);
             final Locale locale = command.extractLocale();
             final DateTimeFormatter fmt = DateTimeFormatter.ofPattern(command.dateFormat()).withLocale(locale);
             final LocalDate activationDate = command.localDateValueOfParameterNamed("activationDate");
 
             runEntityDatatableCheck(clientId, client.getLegalForm());
-
-            final AppUser currentUser = this.context.authenticatedUser();
             client.activate(currentUser, fmt, activationDate);
             CommandProcessingResult result = openSavingsAccount(client, fmt);
             clientRepository.saveAndFlush(client);
@@ -961,11 +995,19 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
         this.fromApiJsonDeserializer.validateRejection(command);
 
         final Client client = this.clientRepository.findOneWithNotFoundDetection(entityId);
+        if (client.getCreatedBy().isPresent() && Objects.equals(client.getCreatedBy().get(), currentUser.getId())) {
+            throw new GeneralPlatformDomainRuleException("error.msg.client.rejecter.cannot.be.maker",
+                    "A user cannot reject their own created customer record");
+        }
         final LocalDate rejectionDate = command.localDateValueOfParameterNamed(ClientApiConstants.rejectionDateParamName);
         final Long rejectionReasonId = command.longValueOfParameterNamed(ClientApiConstants.rejectionReasonIdParamName);
+        final String rejectionReasonText = command.stringValueOfParameterNamedAllowingNull(ClientApiConstants.rejectionReasonParamName);
 
-        final CodeValue rejectionReason = this.codeValueRepository
-                .findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.CLIENT_REJECT_REASON, rejectionReasonId);
+        CodeValue rejectionReason = null;
+        if (rejectionReasonId != null) {
+            rejectionReason = this.codeValueRepository
+                    .findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.CLIENT_REJECT_REASON, rejectionReasonId);
+        }
 
         if (client.isNotPending()) {
             final String errorMessage = "Only clients pending activation may be withdrawn.";
@@ -976,7 +1018,7 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
             throw new InvalidClientStateTransitionException("rejection", "date.cannot.before.client.submitted.date", errorMessage,
                     rejectionDate, client.getSubmittedOnDate());
         }
-        client.reject(currentUser, rejectionReason, rejectionDate);
+        client.reject(currentUser, rejectionReason, rejectionDate, rejectionReasonText);
         clientRepository.saveAndFlush(client);
         businessEventNotifierService.notifyPostBusinessEvent(new ClientRejectBusinessEvent(client));
         return new CommandProcessingResultBuilder() //
@@ -1101,4 +1143,154 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
                 .build();
     }
 
+    private void extractAndCreateCustomerCifDetails(final Client client, final JsonCommand command) {
+        final String customerTypeStr = command.stringValueOfParameterNamedAllowingNull(ClientApiConstants.customerTypeParamName);
+        if (StringUtils.isNotBlank(customerTypeStr)) {
+            final CustomerType customerType = CustomerType.fromString(customerTypeStr);
+            if (customerType != null) {
+                client.updateCustomerType(customerType);
+            }
+        }
+
+        if (command.hasParameter(ClientApiConstants.hasLoanLimitParamName)) {
+            final boolean hasLoanLimit = command.booleanPrimitiveValueOfParameterNamed(ClientApiConstants.hasLoanLimitParamName);
+            client.updateHasLoanLimit(hasLoanLimit);
+        }
+
+        final JsonElement element = command.parsedJson();
+
+        // Customer Individual
+        if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerIndividualParamName, element)) {
+            final JsonElement indElement = element.getAsJsonObject().get(ClientApiConstants.customerIndividualParamName);
+            if (indElement != null && indElement.isJsonObject()) {
+                final JsonObject indObj = indElement.getAsJsonObject();
+                final String salutation = indObj.has("salutation") && !indObj.get("salutation").isJsonNull() ? indObj.get("salutation").getAsString() : null;
+                final String maritalStatus = indObj.has("maritalStatus") && !indObj.get("maritalStatus").isJsonNull() ? indObj.get("maritalStatus").getAsString() : null;
+                final boolean isDependent = indObj.has("isDependent") && !indObj.get("isDependent").isJsonNull() && indObj.get("isDependent").getAsBoolean();
+                final boolean isPwd = indObj.has("isPwd") && !indObj.get("isPwd").isJsonNull() && indObj.get("isPwd").getAsBoolean();
+                final String countryOfBirth = indObj.has("countryOfBirth") && !indObj.get("countryOfBirth").isJsonNull() ? indObj.get("countryOfBirth").getAsString() : null;
+                final String nationality = indObj.has("nationality") && !indObj.get("nationality").isJsonNull() ? indObj.get("nationality").getAsString() : "Ugandan";
+                final String homeOwnership = indObj.has("homeOwnership") && !indObj.get("homeOwnership").isJsonNull() ? indObj.get("homeOwnership").getAsString() : null;
+                final String cardNumber = indObj.has("cardNumber") && !indObj.get("cardNumber").isJsonNull() ? indObj.get("cardNumber").getAsString() : null;
+
+                final CustomerIndividual individual = new CustomerIndividual(client, salutation, maritalStatus, isDependent, isPwd,
+                        countryOfBirth, nationality, homeOwnership, cardNumber);
+                this.customerIndividualRepository.save(individual);
+                client.setCustomerIndividual(individual);
+            }
+        }
+
+        // Customer Group
+        if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerGroupParamName, element)) {
+            final JsonElement groupElement = element.getAsJsonObject().get(ClientApiConstants.customerGroupParamName);
+            if (groupElement != null && groupElement.isJsonObject()) {
+                final JsonObject gObj = groupElement.getAsJsonObject();
+                final String groupName = gObj.has("groupName") && !gObj.get("groupName").isJsonNull() ? gObj.get("groupName").getAsString() : "";
+                final String groupType = gObj.has("groupType") && !gObj.get("groupType").isJsonNull() ? gObj.get("groupType").getAsString() : "Members";
+                final String registrationNumber = gObj.has("registrationNumber") && !gObj.get("registrationNumber").isJsonNull() ? gObj.get("registrationNumber").getAsString() : "";
+
+                final CustomerGroup group = new CustomerGroup(client, groupName, groupType, registrationNumber);
+                this.customerGroupRepository.save(group);
+                client.setCustomerGroup(group);
+            }
+        }
+
+        // Customer Institution
+        if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerInstitutionParamName, element)) {
+            final JsonElement instElement = element.getAsJsonObject().get(ClientApiConstants.customerInstitutionParamName);
+            if (instElement != null && instElement.isJsonObject()) {
+                final JsonObject iObj = instElement.getAsJsonObject();
+                final String institutionName = iObj.has("institutionName") && !iObj.get("institutionName").isJsonNull() ? iObj.get("institutionName").getAsString() : "";
+                final String registrationNumber = iObj.has("registrationNumber") && !iObj.get("registrationNumber").isJsonNull() ? iObj.get("registrationNumber").getAsString() : "";
+                final LocalDate registrationDate = this.fromApiJsonHelper.extractLocalDateNamed("registrationDate", iObj);
+                final String tinNumber = iObj.has("tinNumber") && !iObj.get("tinNumber").isJsonNull() ? iObj.get("tinNumber").getAsString() : "";
+                final String businessType = iObj.has("businessType") && !iObj.get("businessType").isJsonNull() ? iObj.get("businessType").getAsString() : null;
+                final String institutionCategory = iObj.has("institutionCategory") && !iObj.get("institutionCategory").isJsonNull() ? iObj.get("institutionCategory").getAsString() : null;
+                final String residenceOwnership = iObj.has("residenceOwnership") && !iObj.get("residenceOwnership").isJsonNull() ? iObj.get("residenceOwnership").getAsString() : null;
+
+                final CustomerInstitution institution = new CustomerInstitution(client, institutionName, registrationNumber,
+                        registrationDate, tinNumber, businessType, institutionCategory, residenceOwnership);
+                this.customerInstitutionRepository.save(institution);
+                client.setCustomerInstitution(institution);
+            }
+        }
+
+        // Customer Joint
+        if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.customerJointParamName, element)) {
+            final JsonElement jointElement = element.getAsJsonObject().get(ClientApiConstants.customerJointParamName);
+            if (jointElement != null && jointElement.isJsonObject()) {
+                final JsonObject jObj = jointElement.getAsJsonObject();
+                final String jointName = jObj.has("jointName") && !jObj.get("jointName").isJsonNull() ? jObj.get("jointName").getAsString() : "";
+
+                final CustomerJoint joint = new CustomerJoint(client, jointName);
+                this.customerJointRepository.save(joint);
+                client.setCustomerJoint(joint);
+            }
+        }
+
+        // Next of Kin
+        if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.nextOfKinParamName, element)) {
+            final JsonElement nokElement = element.getAsJsonObject().get(ClientApiConstants.nextOfKinParamName);
+            if (nokElement != null && nokElement.isJsonArray()) {
+                final JsonArray nokArray = nokElement.getAsJsonArray();
+                final List<CustomerNextOfKin> nokList = new ArrayList<>();
+                for (int i = 0; i < nokArray.size(); i++) {
+                    final JsonElement item = nokArray.get(i);
+                    if (item.isJsonObject()) {
+                        final JsonObject nokObj = item.getAsJsonObject();
+                        final String firstName = nokObj.has("firstName") && !nokObj.get("firstName").isJsonNull() ? nokObj.get("firstName").getAsString() : "";
+                        final String secondName = nokObj.has("secondName") && !nokObj.get("secondName").isJsonNull() ? nokObj.get("secondName").getAsString() : "";
+                        final String phone = nokObj.has("phone") && !nokObj.get("phone").isJsonNull() ? nokObj.get("phone").getAsString() : "";
+                        final String physicalAddress = nokObj.has("physicalAddress") && !nokObj.get("physicalAddress").isJsonNull() ? nokObj.get("physicalAddress").getAsString() : null;
+                        final String relationship = nokObj.has("relationship") && !nokObj.get("relationship").isJsonNull() ? nokObj.get("relationship").getAsString() : "";
+                        final BigDecimal allocationPercentage = nokObj.has("allocationPercentage") && !nokObj.get("allocationPercentage").isJsonNull() ? nokObj.get("allocationPercentage").getAsBigDecimal() : BigDecimal.ZERO;
+
+                        final CustomerNextOfKin nok = new CustomerNextOfKin(client, firstName, secondName, phone, physicalAddress, relationship, allocationPercentage);
+                        this.customerNextOfKinRepository.save(nok);
+                        nokList.add(nok);
+                    }
+                }
+                client.setNextOfKin(nokList);
+            }
+        }
+
+        // Employment Income
+        if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.employmentIncomeParamName, element)) {
+            final JsonElement empElement = element.getAsJsonObject().get(ClientApiConstants.employmentIncomeParamName);
+            if (empElement != null && empElement.isJsonObject()) {
+                final JsonObject empObj = empElement.getAsJsonObject();
+                final String occupation = empObj.has("occupation") && !empObj.get("occupation").isJsonNull() ? empObj.get("occupation").getAsString() : null;
+                final String employerName = empObj.has("employerName") && !empObj.get("employerName").isJsonNull() ? empObj.get("employerName").getAsString() : null;
+                final BigDecimal monthlyIncome = empObj.has("monthlyIncome") && !empObj.get("monthlyIncome").isJsonNull() ? empObj.get("monthlyIncome").getAsBigDecimal() : null;
+
+                final CustomerEmploymentIncome emp = new CustomerEmploymentIncome(client, occupation, employerName, monthlyIncome);
+                this.customerEmploymentIncomeRepository.save(emp);
+                client.setCustomerEmploymentIncome(emp);
+            }
+        }
+
+        // External Banks
+        if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.externalBanksParamName, element)) {
+            final JsonElement bankElement = element.getAsJsonObject().get(ClientApiConstants.externalBanksParamName);
+            if (bankElement != null && bankElement.isJsonArray()) {
+                final JsonArray bankArray = bankElement.getAsJsonArray();
+                final List<CustomerExternalBank> bankList = new ArrayList<>();
+                for (int i = 0; i < bankArray.size(); i++) {
+                    final JsonElement item = bankArray.get(i);
+                    if (item.isJsonObject()) {
+                        final JsonObject bObj = item.getAsJsonObject();
+                        final String bankName = bObj.has("bankName") && !bObj.get("bankName").isJsonNull() ? bObj.get("bankName").getAsString() : "";
+                        final String branchName = bObj.has("branchName") && !bObj.get("branchName").isJsonNull() ? bObj.get("branchName").getAsString() : null;
+                        final String accountNumber = bObj.has("accountNumber") && !bObj.get("accountNumber").isJsonNull() ? bObj.get("accountNumber").getAsString() : "";
+                        final String accountName = bObj.has("accountName") && !bObj.get("accountName").isJsonNull() ? bObj.get("accountName").getAsString() : null;
+
+                        final CustomerExternalBank bank = new CustomerExternalBank(client, bankName, branchName, accountNumber, accountName);
+                        this.customerExternalBankRepository.save(bank);
+                        bankList.add(bank);
+                    }
+                }
+                client.setExternalBanks(bankList);
+            }
+        }
+    }
 }
