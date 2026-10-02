@@ -113,6 +113,17 @@ public final class ClientData implements Comparable<ClientData>, Serializable {
 
     private Boolean isAddressEnabled;
 
+    private String customerType;
+    private Boolean hasLoanLimit;
+    private String rejectionReason;
+    private CustomerIndividualData customerIndividual;
+    private CustomerGroupData customerGroup;
+    private CustomerInstitutionData customerInstitution;
+    private CustomerJointData customerJoint;
+    private List<CustomerNextOfKinData> nextOfKin;
+    private CustomerEmploymentIncomeData employmentIncome;
+    private List<CustomerExternalBankData> externalBanks;
+
     private List<DatatableData> datatables;
 
     // import fields

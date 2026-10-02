@@ -21,8 +21,11 @@ package org.apache.fineract.portfolio.client.domain;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
@@ -204,6 +207,37 @@ public class Client extends AbstractAuditableWithUTCDateTimeCustom<Long> {
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "client", orphanRemoval = true, fetch = FetchType.LAZY)
     protected Set<ClientIdentifier> identifiers = new HashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "customer_type", length = 20, nullable = false)
+    private CustomerType customerType = CustomerType.INDIVIDUAL;
+
+    @Column(name = "has_loan_limit", nullable = false)
+    private boolean hasLoanLimit;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReasonText;
+
+    @OneToOne(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private CustomerIndividual customerIndividual;
+
+    @OneToOne(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private CustomerGroup customerGroup;
+
+    @OneToOne(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private CustomerInstitution customerInstitution;
+
+    @OneToOne(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private CustomerJoint customerJoint;
+
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<CustomerNextOfKin> nextOfKin = new ArrayList<>();
+
+    @OneToOne(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private CustomerEmploymentIncome customerEmploymentIncome;
+
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<CustomerExternalBank> externalBanks = new ArrayList<>();
 
     public static Client instance(final AppUser currentUser, final ClientStatus status, final Office office, final Group clientParentGroup,
             final String accountNo, final String firstname, final String middlename, final String lastname, final String fullname,
@@ -659,11 +693,29 @@ public class Client extends AbstractAuditableWithUTCDateTimeCustom<Long> {
     }
 
     public void reject(AppUser currentUser, CodeValue rejectionReason, LocalDate rejectionDate) {
+        reject(currentUser, rejectionReason, rejectionDate, null);
+    }
+
+    public void reject(AppUser currentUser, CodeValue rejectionReason, LocalDate rejectionDate, String rejectionReasonText) {
         this.rejectionReason = rejectionReason;
         this.rejectionDate = rejectionDate;
         this.rejectedBy = currentUser;
         this.status = ClientStatus.REJECTED.getValue();
+        this.rejectionReasonText = rejectionReasonText;
+    }
 
+    public void updateCustomerType(final CustomerType customerType) {
+        if (customerType != null) {
+            this.customerType = customerType;
+        }
+    }
+
+    public void updateHasLoanLimit(final boolean hasLoanLimit) {
+        this.hasLoanLimit = hasLoanLimit;
+    }
+
+    public void updateRejectionReasonText(final String rejectionReasonText) {
+        this.rejectionReasonText = rejectionReasonText;
     }
 
     public void withdraw(AppUser currentUser, CodeValue withdrawalReason, LocalDate withdrawalDate) {

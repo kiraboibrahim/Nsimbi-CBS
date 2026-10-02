@@ -18,6 +18,8 @@
  */
 package org.apache.fineract.portfolio.client.service;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -25,9 +27,12 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
 import java.util.Collections;
+import java.util.Locale;
+import java.util.Optional;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.codes.domain.CodeValueRepositoryWrapper;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
+import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
 import org.apache.fineract.infrastructure.dataqueries.service.EntityDatatableChecksWritePlatformService;
 import org.apache.fineract.infrastructure.event.business.domain.client.ClientCloseBusinessEvent;
 import org.apache.fineract.infrastructure.event.business.domain.client.ClientReactivateBusinessEvent;
@@ -70,6 +75,8 @@ public class ClientWritePlatformServiceJpaRepositoryImplTest {
     private BusinessEventNotifierService businessEventNotifierService;
     @Mock
     private EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
+    @Mock
+    private org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService configurationDomainService;
     @InjectMocks
     private ClientWritePlatformServiceJpaRepositoryImpl clientWritePlatformService;
 
@@ -158,5 +165,43 @@ public class ClientWritePlatformServiceJpaRepositoryImplTest {
         when(currentClient.getWithdrawalDate()).thenReturn(undoWithdrawalDate);
         clientWritePlatformService.undoWithdrawal(entityId, command);
         verify(businessEventNotifierService).notifyPostBusinessEvent(any(ClientUndoWithdrawalBusinessEvent.class));
+    }
+
+    @Test
+    void shouldThrowDomainRuleExceptionWhenMakerAndCheckerAreSameUserOnActivation() {
+        Long clientId = 1L;
+        Long userId = 42L;
+        JsonCommand command = mock(JsonCommand.class);
+        Client currentClient = mock(Client.class);
+        AppUser currentUser = mock(AppUser.class);
+
+        when(clientRepositoryWrapper.findOneWithNotFoundDetection(clientId, true)).thenReturn(currentClient);
+        when(context.authenticatedUser()).thenReturn(currentUser);
+        when(currentUser.getId()).thenReturn(userId);
+        when(currentClient.getCreatedBy()).thenReturn(Optional.of(userId));
+
+        GeneralPlatformDomainRuleException ex = assertThrows(GeneralPlatformDomainRuleException.class,
+                () -> clientWritePlatformService.activateClient(clientId, command));
+
+        assertTrue(ex.getGlobalisationMessageCode().contains("approver.cannot.be.maker"));
+    }
+
+    @Test
+    void shouldThrowDomainRuleExceptionWhenMakerAndCheckerAreSameUserOnRejection() {
+        Long clientId = 1L;
+        Long userId = 42L;
+        JsonCommand command = mock(JsonCommand.class);
+        Client currentClient = mock(Client.class);
+        AppUser currentUser = mock(AppUser.class);
+
+        when(clientRepositoryWrapper.findOneWithNotFoundDetection(clientId)).thenReturn(currentClient);
+        when(context.authenticatedUser()).thenReturn(currentUser);
+        when(currentUser.getId()).thenReturn(userId);
+        when(currentClient.getCreatedBy()).thenReturn(Optional.of(userId));
+
+        GeneralPlatformDomainRuleException ex = assertThrows(GeneralPlatformDomainRuleException.class,
+                () -> clientWritePlatformService.rejectClient(clientId, command));
+
+        assertTrue(ex.getGlobalisationMessageCode().contains("rejecter.cannot.be.maker"));
     }
 }

@@ -260,4 +260,132 @@ class ClientDataValidatorTest {
 
         assertTrue(ex.getErrors().stream().anyMatch(e -> ClientApiConstants.datatables.equals(e.getParameterName())));
     }
+
+    @Test
+    void validateForCreate_withValidIndividualKyc_doesNotThrow() {
+        String json = """
+                {
+                  "officeId": 1,
+                  "firstname": "John",
+                  "lastname": "Doe",
+                  "active": false,
+                  "legalFormId": 1,
+                  "customerType": "INDIVIDUAL",
+                  "locale": "en",
+                  "dateFormat": "yyyy-MM-dd",
+                  "customerIndividual": {
+                    "nin": "CM90012345678A"
+                  },
+                  "nextOfKin": [
+                    {
+                      "firstName": "Alice",
+                      "secondName": "Doe",
+                      "relationship": "Sister",
+                      "allocationPercentage": 60.00
+                    },
+                    {
+                      "firstName": "Bob",
+                      "secondName": "Doe",
+                      "relationship": "Brother",
+                      "allocationPercentage": 40.00
+                    }
+                  ],
+                  "employmentIncome": {
+                    "employmentType": "SALARIED",
+                    "employerName": "Kampala Hospital",
+                    "monthlyIncome": 2500000.00
+                  },
+                  "externalBanks": [
+                    {
+                      "bankName": "Stanbic Bank",
+                      "accountNumber": "9030012345678"
+                    }
+                  ]
+                }
+                """;
+
+        assertDoesNotThrow(() -> validator.validateForCreate(json));
+    }
+
+    @Test
+    void validateForCreate_withInvalidNinFormat_throwsPlatformApiDataValidationException() {
+        String json = """
+                {
+                  "officeId": 1,
+                  "firstname": "John",
+                  "lastname": "Doe",
+                  "active": false,
+                  "legalFormId": 1,
+                  "customerType": "INDIVIDUAL",
+                  "locale": "en",
+                  "dateFormat": "yyyy-MM-dd",
+                  "customerIndividual": {
+                    "nin": "INVALID_NIN_SHORT"
+                  }
+                }
+                """;
+
+        PlatformApiDataValidationException ex = assertThrows(PlatformApiDataValidationException.class,
+                () -> validator.validateForCreate(json));
+
+        assertTrue(ex.getErrors().stream().anyMatch(e -> "nin".equals(e.getParameterName())));
+    }
+
+    @Test
+    void validateForCreate_withNextOfKinAllocationExceeding100_throwsPlatformApiDataValidationException() {
+        String json = """
+                {
+                  "officeId": 1,
+                  "firstname": "John",
+                  "lastname": "Doe",
+                  "active": false,
+                  "legalFormId": 1,
+                  "customerType": "INDIVIDUAL",
+                  "locale": "en",
+                  "dateFormat": "yyyy-MM-dd",
+                  "nextOfKin": [
+                    {
+                      "firstName": "Alice",
+                      "secondName": "Doe",
+                      "relationship": "Sister",
+                      "allocationPercentage": 70.00
+                    },
+                    {
+                      "firstName": "Bob",
+                      "secondName": "Doe",
+                      "relationship": "Brother",
+                      "allocationPercentage": 35.00
+                    }
+                  ]
+                }
+                """;
+
+        PlatformApiDataValidationException ex = assertThrows(PlatformApiDataValidationException.class,
+                () -> validator.validateForCreate(json));
+
+        assertTrue(ex.getErrors().stream().anyMatch(e -> e.getParameterName().contains(ClientApiConstants.nextOfKinParamName)));
+    }
+
+    @Test
+    void validateForCreate_withGroupMissingGroupName_throwsPlatformApiDataValidationException() {
+        String json = """
+                {
+                  "officeId": 1,
+                  "fullname": "Group Account",
+                  "active": false,
+                  "legalFormId": 2,
+                  "customerType": "GROUP",
+                  "locale": "en",
+                  "dateFormat": "yyyy-MM-dd",
+                  "customerGroup": {
+                    "registrationNumber": "REG123"
+                  }
+                }
+                """;
+
+        PlatformApiDataValidationException ex = assertThrows(PlatformApiDataValidationException.class,
+                () -> validator.validateForCreate(json));
+
+        assertTrue(ex.getErrors().stream().anyMatch(e -> "groupName".equals(e.getParameterName())));
+    }
 }

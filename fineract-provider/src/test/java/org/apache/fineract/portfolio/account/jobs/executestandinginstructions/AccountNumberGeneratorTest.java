@@ -94,6 +94,34 @@ public class AccountNumberGeneratorTest {
     }
 
     @Test
+    public void testGenerateDeterministicMemberNumber_whenFormatIsNull() {
+        Client client = mock(Client.class);
+        Office office = mock(Office.class);
+
+        when(client.getId()).thenReturn(528L);
+        when(client.getOffice()).thenReturn(office);
+        when(office.getId()).thenReturn(35L);
+
+        String accountNumber = generator.generate(client, null);
+        assertThat(accountNumber).isEqualTo("00350000528");
+        assertThat(accountNumber).hasSize(11);
+    }
+
+    @Test
+    public void testGenerateDeterministicMemberNumber_directMethodCall() {
+        Client client = mock(Client.class);
+        Office office = mock(Office.class);
+
+        when(client.getId()).thenReturn(1234567L);
+        when(client.getOffice()).thenReturn(office);
+        when(office.getId()).thenReturn(1L);
+
+        String accountNumber = generator.generateDeterministicMemberNumber(client);
+        assertThat(accountNumber).isEqualTo("00011234567");
+        assertThat(accountNumber).hasSize(11);
+    }
+
+    @Test
     public void testGenerateLoanAccountNumber() {
         Loan loan = mock(Loan.class);
         Office office = mock(Office.class);
