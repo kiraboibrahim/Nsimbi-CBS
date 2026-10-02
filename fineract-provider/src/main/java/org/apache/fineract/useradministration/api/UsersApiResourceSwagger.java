@@ -59,6 +59,10 @@ final class UsersApiResourceSwagger {
         public Boolean passwordNeverExpires;
         public StaffData staff;
         public Collection<RoleData> selectedRoles;
+        @Schema(example = "false")
+        public Boolean isSuspended;
+        @Schema(example = "2026-09-27T01:00:00")
+        public String lastLoginAt;
 
     }
 
@@ -86,8 +90,13 @@ final class UsersApiResourceSwagger {
         @Schema(example = "false")
         public Boolean passwordNeverExpires;
         public StaffData staff;
+        public Collection<OfficeData> allowedOffices;
         public Collection<RoleData> availableRoles;
         public Collection<RoleData> selectedRoles;
+        @Schema(example = "false")
+        public Boolean isSuspended;
+        @Schema(example = "2026-09-27T01:00:00")
+        public String lastLoginAt;
 
     }
 
@@ -136,6 +145,10 @@ final class UsersApiResourceSwagger {
         @Schema(example = "true")
         public Boolean isLoginRetriesEnabled;
         public Boolean isPasswordResetAllowed;
+        @Schema(example = "false")
+        public Boolean isSuspended;
+        @Schema(example = "[1,2]")
+        public List<Long> officeAssignments;
     }
 
     @Schema(description = "PostUsersResponse")
@@ -218,6 +231,10 @@ final class UsersApiResourceSwagger {
         @Schema(example = "true")
         public Boolean isLoginRetriesEnabled;
         public Boolean isPasswordResetAllowed;
+        @Schema(example = "false")
+        public Boolean isSuspended;
+        @Schema(example = "[1,2]")
+        public List<Long> officeAssignments;
     }
 
     @Schema(description = "PutUsersUserIdResponse")

@@ -20,6 +20,8 @@ package org.apache.fineract.useradministration.service;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
@@ -35,10 +37,13 @@ import org.apache.fineract.useradministration.data.RoleData;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.apache.fineract.useradministration.domain.AppUserRepository;
 import org.apache.fineract.useradministration.domain.Role;
+import org.apache.fineract.organisation.office.domain.Office;
+import org.apache.fineract.useradministration.domain.UserOfficeAssignment;
 import org.apache.fineract.useradministration.exception.UserNotFoundException;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformService {
@@ -93,6 +98,7 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
     }
 
     @Override
+    @Transactional(readOnly = true)
     public AppUserData retrieveUser(final Long userId) {
 
         this.context.authenticatedUser();
@@ -119,9 +125,20 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
             linkedStaff = null;
         }
 
+        final Set<UserOfficeAssignment> assignments = user.getOfficeAssignments();
+        final Collection<OfficeData> allowedOffices = new ArrayList<>();
+        if (assignments != null) {
+            for (final UserOfficeAssignment assignment : assignments) {
+                final Office assignedOffice = assignment.getOffice();
+                if (assignedOffice != null) {
+                    allowedOffices.add(OfficeData.dropdown(assignedOffice.getId(), assignedOffice.getName(), null));
+                }
+            }
+        }
+
         AppUserData retUser = AppUserData.instance(user.getId(), user.getUsername(), user.getEmail(), user.getOffice().getId(),
-                user.getOffice().getName(), user.getFirstname(), user.getLastname(), availableRoles, selectedUserRoles, linkedStaff,
-                user.getPasswordNeverExpires());
+                user.getOffice().getName(), user.getFirstname(), user.getLastname(), availableRoles, selectedUserRoles, allowedOffices,
+                linkedStaff, user.getPasswordNeverExpires(), user.isSuspended(), user.getLastLoginAt());
 
         return retUser;
     }
@@ -148,6 +165,9 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
             final String officeName = rs.getString("officeName");
             final Long staffId = JdbcSupport.getLong(rs, "staffId");
             final Boolean passwordNeverExpire = rs.getBoolean("passwordNeverExpires");
+            final Boolean isSuspended = rs.getBoolean("isSuspended");
+            final Timestamp lastLoginAtTimestamp = rs.getTimestamp("lastLoginAt");
+            final LocalDateTime lastLoginAt = lastLoginAtTimestamp != null ? lastLoginAtTimestamp.toLocalDateTime() : null;
             final Collection<RoleData> selectedRoles = this.roleReadPlatformService.retrieveAppUserRoles(id);
 
             final StaffData linkedStaff;
@@ -157,11 +177,12 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
                 linkedStaff = null;
             }
             return AppUserData.instance(id, username, email, officeId, officeName, firstname, lastname, null, selectedRoles, linkedStaff,
-                    passwordNeverExpire);
+                    passwordNeverExpire, isSuspended, lastLoginAt);
         }
 
         public String schema() {
             return " u.id as id, u.username as username, u.firstname as firstname, u.lastname as lastname, u.email as email, u.password_never_expires as passwordNeverExpires, "
+                    + " u.is_suspended as isSuspended, u.last_login_at as lastLoginAt, "
                     + " u.office_id as officeId, o.name as officeName, u.staff_id as staffId from m_appuser u "
                     + " join m_office o on o.id = u.office_id where o.hierarchy like ? and u.is_deleted=false order by u.username";
         }

@@ -24,11 +24,10 @@ import org.apache.fineract.useradministration.domain.TransactionLimitType;
 
 public class TransactionLimitExceededException extends AbstractPlatformDomainRuleException {
 
-    public TransactionLimitExceededException(final TransactionLimitType limitType, final BigDecimal amount,
-            final BigDecimal minAmount, final BigDecimal maxAmount) {
-        super("error.msg.transaction.limit.exceeded",
-                "Transaction amount " + amount + " violates " + limitType.name() + " limit boundaries [" + minAmount + " - " + maxAmount + "]",
-                limitType.name(), amount, minAmount, maxAmount);
+    public TransactionLimitExceededException(final TransactionLimitType limitType, final BigDecimal amount, final BigDecimal minAmount,
+            final BigDecimal maxAmount) {
+        super("error.msg.transaction.limit.exceeded", "Transaction amount " + amount + " violates " + limitType.name()
+                + " limit boundaries [" + minAmount + " - " + maxAmount + "]", limitType.name(), amount, minAmount, maxAmount);
     }
 
     public TransactionLimitExceededException(final String message) {

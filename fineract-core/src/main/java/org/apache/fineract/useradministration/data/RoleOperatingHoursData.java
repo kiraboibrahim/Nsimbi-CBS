@@ -34,8 +34,8 @@ public class RoleOperatingHoursData implements Serializable {
     private final LocalTime closeTime;
     private final boolean isClosed;
 
-    public static RoleOperatingHoursData instance(final Long id, final Long roleId, final Integer dayOfWeek,
-            final LocalTime openTime, final LocalTime closeTime, final boolean isClosed) {
+    public static RoleOperatingHoursData instance(final Long id, final Long roleId, final Integer dayOfWeek, final LocalTime openTime,
+            final LocalTime closeTime, final boolean isClosed) {
         return new RoleOperatingHoursData(id, roleId, dayOfWeek, openTime, closeTime, isClosed);
     }
 }

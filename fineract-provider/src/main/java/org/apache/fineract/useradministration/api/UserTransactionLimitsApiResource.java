@@ -63,8 +63,7 @@ public class UserTransactionLimitsApiResource {
     @GET
     @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Retrieve user transaction limits", description = "Retrieves all configured transaction limits for a given user")
-    public String retrieveAll(@PathParam("userId") @Parameter(description = "userId") final Long userId,
-            @Context final UriInfo uriInfo) {
+    public String retrieveAll(@PathParam("userId") @Parameter(description = "userId") final Long userId, @Context final UriInfo uriInfo) {
         this.context.authenticatedUser().validateHasReadPermission(RESOURCE_NAME_FOR_PERMISSIONS);
 
         final Collection<UserTransactionLimitData> limits = this.readPlatformService.retrieveUserTransactionLimits(userId);

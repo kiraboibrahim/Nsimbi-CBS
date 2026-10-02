@@ -53,8 +53,7 @@ public class UserTransactionLimitWritePlatformServiceImpl implements UserTransac
     @Transactional
     public CommandProcessingResult updateUserTransactionLimits(final Long userId, final JsonCommand command) {
         this.context.authenticatedUser();
-        final AppUser user = this.appUserRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+        final AppUser user = this.appUserRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
         validateForUpdate(command);
 
@@ -76,16 +75,12 @@ public class UserTransactionLimitWritePlatformServiceImpl implements UserTransac
             this.userTransactionLimitRepository.saveAll(newLimits);
         }
 
-        return new CommandProcessingResultBuilder()
-                .withCommandId(command.commandId())
-                .withEntityId(userId)
-                .build();
+        return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(userId).build();
     }
 
     private void validateForUpdate(final JsonCommand command) {
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
-                .resource("userTransactionLimits");
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("userTransactionLimits");
 
         final JsonElement element = command.parsedJson();
         baseDataValidator.reset().parameter("limits").value(element).notNull();
@@ -98,7 +93,8 @@ public class UserTransactionLimitWritePlatformServiceImpl implements UserTransac
                 for (int i = 0; i < limitsArray.size(); i++) {
                     final JsonObject limitObj = limitsArray.get(i).getAsJsonObject();
                     final String limitTypeStr = limitObj.has("limitType") && !limitObj.get("limitType").isJsonNull()
-                            ? limitObj.get("limitType").getAsString() : null;
+                            ? limitObj.get("limitType").getAsString()
+                            : null;
                     baseDataValidator.reset().parameter("limits[" + i + "].limitType").value(limitTypeStr).notBlank();
                     if (limitTypeStr != null) {
                         try {
@@ -109,16 +105,18 @@ public class UserTransactionLimitWritePlatformServiceImpl implements UserTransac
                     }
 
                     final BigDecimal minAmount = limitObj.has("minAmount") && !limitObj.get("minAmount").isJsonNull()
-                            ? limitObj.get("minAmount").getAsBigDecimal() : null;
+                            ? limitObj.get("minAmount").getAsBigDecimal()
+                            : null;
                     final BigDecimal maxAmount = limitObj.has("maxAmount") && !limitObj.get("maxAmount").isJsonNull()
-                            ? limitObj.get("maxAmount").getAsBigDecimal() : null;
+                            ? limitObj.get("maxAmount").getAsBigDecimal()
+                            : null;
 
                     baseDataValidator.reset().parameter("limits[" + i + "].minAmount").value(minAmount).notNull().zeroOrPositiveAmount();
                     baseDataValidator.reset().parameter("limits[" + i + "].maxAmount").value(maxAmount).notNull().zeroOrPositiveAmount();
 
                     if (minAmount != null && maxAmount != null && minAmount.compareTo(maxAmount) > 0) {
-                        baseDataValidator.reset().parameter("limits[" + i + "].minAmount")
-                                .failWithCode("min.cannot.exceed.max", "Minimum limit cannot exceed maximum limit");
+                        baseDataValidator.reset().parameter("limits[" + i + "].minAmount").failWithCode("min.cannot.exceed.max",
+                                "Minimum limit cannot exceed maximum limit");
                     }
                 }
             }

@@ -45,17 +45,14 @@ public class UserTransactionLimitValidator {
             throw new IllegalArgumentException("Transaction amount cannot be negative");
         }
 
-        Optional<UserTransactionLimit> limitOpt = this.userTransactionLimitRepository
-                .findByAppUserIdAndLimitType(user.getId(), type);
+        Optional<UserTransactionLimit> limitOpt = this.userTransactionLimitRepository.findByAppUserIdAndLimitType(user.getId(), type);
 
         if (limitOpt.isEmpty() && type != TransactionLimitType.DEFAULT) {
-            limitOpt = this.userTransactionLimitRepository.findByAppUserIdAndLimitType(user.getId(),
-                    TransactionLimitType.DEFAULT);
+            limitOpt = this.userTransactionLimitRepository.findByAppUserIdAndLimitType(user.getId(), TransactionLimitType.DEFAULT);
         }
 
         if (limitOpt.isEmpty()) {
-            throw new TransactionLimitExceededException(
-                    "Operator has no configured monetary authority for " + type.name());
+            throw new TransactionLimitExceededException("Operator has no configured monetary authority for " + type.name());
         }
 
         final UserTransactionLimit limit = limitOpt.get();

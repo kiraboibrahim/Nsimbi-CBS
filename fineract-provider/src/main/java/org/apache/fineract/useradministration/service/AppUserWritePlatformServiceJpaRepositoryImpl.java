@@ -36,6 +36,7 @@ import org.apache.fineract.infrastructure.core.exception.ErrorHandler;
 import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.apache.fineract.infrastructure.core.service.PlatformEmailSendException;
+import org.apache.fineract.infrastructure.security.exception.NoAuthorizationException;
 import org.apache.fineract.infrastructure.security.service.PlatformPasswordEncoder;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.office.domain.Office;
@@ -194,6 +195,12 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
             final AppUserPreviousPassword currentPasswordToSaveAsPreview = getCurrentPasswordToSaveAsPreview(userToUpdate, command);
 
             final Map<String, Object> changes = userToUpdate.update(command, this.platformPasswordEncoder);
+
+            // Prevent users from suspending their own accounts to avoid accidental lockout or orphaned administrator
+            // state (FR-008).
+            if (changes.containsKey("isSuspended") && userToUpdate.isSuspended() && currentUser.getId().equals(userId)) {
+                throw new NoAuthorizationException("An administrator cannot suspend their own account");
+            }
 
             if (changes.containsKey("officeId")) {
                 final Long officeId = (Long) changes.get("officeId");

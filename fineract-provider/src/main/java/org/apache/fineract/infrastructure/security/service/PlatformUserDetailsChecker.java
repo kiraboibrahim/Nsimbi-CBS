@@ -28,8 +28,8 @@ import org.springframework.security.core.userdetails.UserDetailsChecker;
 import org.springframework.stereotype.Component;
 
 /**
- * Checks user details during Spring Security authentication. Enforces credentials expiration, account suspension,
- * and role operating hours.
+ * Checks user details during Spring Security authentication. Enforces credentials expiration, account suspension, and
+ * role operating hours.
  */
 @Component
 @RequiredArgsConstructor

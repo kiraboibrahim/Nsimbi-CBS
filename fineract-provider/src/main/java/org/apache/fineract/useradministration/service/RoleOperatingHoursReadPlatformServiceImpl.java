@@ -47,9 +47,8 @@ public class RoleOperatingHoursReadPlatformServiceImpl implements RoleOperatingH
         }
 
         final List<RoleOperatingHours> hours = this.roleOperatingHoursRepository.findByRoleId(roleId);
-        return hours.stream()
-                .map(h -> RoleOperatingHoursData.instance(h.getId(), roleId, h.getDayOfWeek(), h.getOpenTime(),
-                        h.getCloseTime(), h.isClosed()))
+        return hours.stream().map(
+                h -> RoleOperatingHoursData.instance(h.getId(), roleId, h.getDayOfWeek(), h.getOpenTime(), h.getCloseTime(), h.isClosed()))
                 .toList();
     }
 }

@@ -47,9 +47,7 @@ public class UserTransactionLimitReadPlatformServiceImpl implements UserTransact
         }
 
         final List<UserTransactionLimit> limits = this.userTransactionLimitRepository.findByAppUserId(userId);
-        return limits.stream()
-                .map(limit -> UserTransactionLimitData.instance(limit.getId(), userId, limit.getLimitType().name(),
-                        limit.getMinAmount(), limit.getMaxAmount()))
-                .toList();
+        return limits.stream().map(limit -> UserTransactionLimitData.instance(limit.getId(), userId, limit.getLimitType().name(),
+                limit.getMinAmount(), limit.getMaxAmount())).toList();
     }
 }

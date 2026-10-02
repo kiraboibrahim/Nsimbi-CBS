@@ -24,7 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -39,6 +39,7 @@ import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
+import org.apache.fineract.infrastructure.security.exception.NoAuthorizationException;
 import org.apache.fineract.infrastructure.security.service.PlatformPasswordEncoder;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.office.domain.Office;
@@ -106,7 +107,8 @@ public class AppUserWritePlatformServiceJpaRepositoryImplTest {
         when(command.json()).thenReturn("{}");
         when(appUserRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(context.authenticatedUser(any(CommandWrapper.class))).thenReturn(authenticatedUser);
-        doNothing().when(fromApiJsonDeserializer).validateForChangePassword(anyString(), nullable(AppUser.class));
+        lenient().doNothing().when(fromApiJsonDeserializer).validateForChangePassword(anyString(), nullable(AppUser.class));
+        lenient().doNothing().when(fromApiJsonDeserializer).validateForUpdate(anyString(), nullable(AppUser.class));
     }
 
     @AfterEach
@@ -147,5 +149,30 @@ public class AppUserWritePlatformServiceJpaRepositoryImplTest {
         assertEquals(USER_ID, result.getResourceId());
         verify(appUserRepository).saveAndFlush(user);
         verify(appUserPreviewPasswordRepository).save(any(AppUserPreviousPassword.class));
+    }
+
+    @Test
+    void updateUserAllowsSuspensionForOtherUser() {
+        Office office = mock(Office.class);
+        when(office.getId()).thenReturn(7L);
+        when(user.getOffice()).thenReturn(office);
+        when(user.isSuspended()).thenReturn(true);
+        when(user.update(command, platformPasswordEncoder)).thenReturn(Map.of("isSuspended", true));
+        when(authenticatedUser.getId()).thenReturn(999L);
+
+        CommandProcessingResult result = underTest.updateUser(USER_ID, command);
+
+        assertEquals(USER_ID, result.getResourceId());
+        verify(appUserRepository).saveAndFlush(user);
+    }
+
+    @Test
+    void updateUserThrowsWhenAdminAttemptsSelfSuspension() {
+        when(user.isSuspended()).thenReturn(true);
+        when(user.update(command, platformPasswordEncoder)).thenReturn(Map.of("isSuspended", true));
+        when(authenticatedUser.getId()).thenReturn(USER_ID);
+
+        assertThrows(NoAuthorizationException.class, () -> underTest.updateUser(USER_ID, command));
+        verify(appUserRepository, never()).saveAndFlush(user);
     }
 }

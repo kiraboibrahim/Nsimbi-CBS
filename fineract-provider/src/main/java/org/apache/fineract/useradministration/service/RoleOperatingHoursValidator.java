@@ -86,7 +86,6 @@ public class RoleOperatingHoursValidator {
             }
         }
 
-        throw new OperatingHoursRestrictionException(
-                "Access is restricted outside permitted operating hours for current role schedule.");
+        throw new OperatingHoursRestrictionException("Access is restricted outside permitted operating hours for current role schedule.");
     }
 }

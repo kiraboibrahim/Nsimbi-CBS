@@ -19,15 +19,8 @@
 package org.apache.fineract.useradministration.domain;
 
 public enum TransactionLimitType {
-    DEPOSIT,
-    WITHDRAWAL,
-    LOAN_APPROVAL,
-    DISBURSEMENT,
-    SHARES,
-    FIXED_ASSETS,
-    JVS,
-    DEFAULT,
-    TRANSFER;
+
+    DEPOSIT, WITHDRAWAL, LOAN_APPROVAL, DISBURSEMENT, SHARES, FIXED_ASSETS, JVS, DEFAULT, TRANSFER;
 
     public static TransactionLimitType fromString(final String value) {
         if (value != null) {

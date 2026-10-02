@@ -162,7 +162,6 @@ public class AppUser extends AbstractPersistableCustom<Long> implements Platform
     @Column(name = "is_suspended", nullable = false)
     private boolean isSuspended = false;
 
-    @Getter
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 

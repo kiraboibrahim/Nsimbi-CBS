@@ -53,8 +53,7 @@ public class RoleOperatingHoursWritePlatformServiceImpl implements RoleOperating
     @Transactional
     public CommandProcessingResult updateRoleOperatingHours(final Long roleId, final JsonCommand command) {
         this.context.authenticatedUser();
-        final Role role = this.roleRepository.findById(roleId)
-                .orElseThrow(() -> new RoleNotFoundException(roleId));
+        final Role role = this.roleRepository.findById(roleId).orElseThrow(() -> new RoleNotFoundException(roleId));
 
         validateForUpdate(command);
 
@@ -85,16 +84,12 @@ public class RoleOperatingHoursWritePlatformServiceImpl implements RoleOperating
             this.roleOperatingHoursRepository.saveAll(newHours);
         }
 
-        return new CommandProcessingResultBuilder()
-                .withCommandId(command.commandId())
-                .withEntityId(roleId)
-                .build();
+        return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(roleId).build();
     }
 
     private void validateForUpdate(final JsonCommand command) {
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
-                .resource("roleOperatingHours");
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("roleOperatingHours");
 
         final JsonElement element = command.parsedJson();
         baseDataValidator.reset().parameter("schedule").value(element).notNull();
@@ -107,16 +102,18 @@ public class RoleOperatingHoursWritePlatformServiceImpl implements RoleOperating
                 for (int i = 0; i < scheduleArray.size(); i++) {
                     final JsonObject dayObj = scheduleArray.get(i).getAsJsonObject();
                     final Integer dayOfWeek = dayObj.has("dayOfWeek") && !dayObj.get("dayOfWeek").isJsonNull()
-                            ? dayObj.get("dayOfWeek").getAsInt() : null;
-                    baseDataValidator.reset().parameter("schedule[" + i + "].dayOfWeek").value(dayOfWeek).notNull()
-                            .inMinMaxRange(1, 7);
+                            ? dayObj.get("dayOfWeek").getAsInt()
+                            : null;
+                    baseDataValidator.reset().parameter("schedule[" + i + "].dayOfWeek").value(dayOfWeek).notNull().inMinMaxRange(1, 7);
 
                     final boolean isClosed = dayObj.has("isClosed") && dayObj.get("isClosed").getAsBoolean();
                     if (!isClosed) {
                         final String openTimeStr = dayObj.has("openTime") && !dayObj.get("openTime").isJsonNull()
-                                ? dayObj.get("openTime").getAsString() : null;
+                                ? dayObj.get("openTime").getAsString()
+                                : null;
                         final String closeTimeStr = dayObj.has("closeTime") && !dayObj.get("closeTime").isJsonNull()
-                                ? dayObj.get("closeTime").getAsString() : null;
+                                ? dayObj.get("closeTime").getAsString()
+                                : null;
 
                         baseDataValidator.reset().parameter("schedule[" + i + "].openTime").value(openTimeStr).notBlank();
                         baseDataValidator.reset().parameter("schedule[" + i + "].closeTime").value(closeTimeStr).notBlank();
@@ -138,8 +135,8 @@ public class RoleOperatingHoursWritePlatformServiceImpl implements RoleOperating
                             }
                         }
                         if (open != null && close != null && !open.isBefore(close)) {
-                            baseDataValidator.reset().parameter("schedule[" + i + "].openTime")
-                                    .failWithCode("open.must.be.before.close", "Open time must be before close time");
+                            baseDataValidator.reset().parameter("schedule[" + i + "].openTime").failWithCode("open.must.be.before.close",
+                                    "Open time must be before close time");
                         }
                     }
                 }

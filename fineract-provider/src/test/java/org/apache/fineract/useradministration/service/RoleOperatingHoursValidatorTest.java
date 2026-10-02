@@ -71,8 +71,7 @@ class RoleOperatingHoursValidatorTest {
 
     @Test
     void shouldThrowIllegalArgumentWhenUserIsNull() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> validator.validateUserOperatingHours(null));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> validator.validateUserOperatingHours(null));
         assertEquals("User cannot be null for operating hours validation", exception.getMessage());
     }
 
@@ -159,8 +158,7 @@ class RoleOperatingHoursValidatorTest {
 
         when(roleOperatingHoursRepository.findByRoleId(1L)).thenReturn(List.of(hours));
 
-        assertThrows(OperatingHoursRestrictionException.class,
-                () -> validator.validateUserOperatingHours(appUser));
+        assertThrows(OperatingHoursRestrictionException.class, () -> validator.validateUserOperatingHours(appUser));
     }
 
     @Test
@@ -183,8 +181,7 @@ class RoleOperatingHoursValidatorTest {
 
         when(roleOperatingHoursRepository.findByRoleId(1L)).thenReturn(List.of(hours));
 
-        assertThrows(OperatingHoursRestrictionException.class,
-                () -> validator.validateUserOperatingHours(appUser));
+        assertThrows(OperatingHoursRestrictionException.class, () -> validator.validateUserOperatingHours(appUser));
     }
 
     @Test
@@ -204,8 +201,7 @@ class RoleOperatingHoursValidatorTest {
 
         when(roleOperatingHoursRepository.findByRoleId(1L)).thenReturn(List.of(hours));
 
-        assertThrows(OperatingHoursRestrictionException.class,
-                () -> validator.validateUserOperatingHours(appUser));
+        assertThrows(OperatingHoursRestrictionException.class, () -> validator.validateUserOperatingHours(appUser));
     }
 
     @Test
@@ -223,7 +219,10 @@ class RoleOperatingHoursValidatorTest {
         when(roleOpen.getId()).thenReturn(2L);
         when(roleOpen.isDisabled()).thenReturn(false);
 
-        when(appUser.getRoles()).thenReturn(Set.of(roleClosed, roleOpen));
+        Set<Role> roles = new java.util.LinkedHashSet<>();
+        roles.add(roleClosed);
+        roles.add(roleOpen);
+        when(appUser.getRoles()).thenReturn(roles);
 
         // Role 1 is closed today
         RoleOperatingHours hours1 = mock(RoleOperatingHours.class);

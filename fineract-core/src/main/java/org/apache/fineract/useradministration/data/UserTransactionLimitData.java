@@ -33,8 +33,8 @@ public class UserTransactionLimitData implements Serializable {
     private final BigDecimal minAmount;
     private final BigDecimal maxAmount;
 
-    public static UserTransactionLimitData instance(final Long id, final Long userId, final String limitType,
-            final BigDecimal minAmount, final BigDecimal maxAmount) {
+    public static UserTransactionLimitData instance(final Long id, final Long userId, final String limitType, final BigDecimal minAmount,
+            final BigDecimal maxAmount) {
         return new UserTransactionLimitData(id, userId, limitType, minAmount, maxAmount);
     }
 }

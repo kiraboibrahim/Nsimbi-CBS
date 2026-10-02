@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.useradministration.data;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -41,15 +42,24 @@ public final class AppUserData {
     private final String lastname;
     private final String email;
     private final Boolean passwordNeverExpires;
+    @Getter
+    // Administrative suspension status for user access control.
+    private final Boolean isSuspended;
+    @Getter
+    // Timestamp of the user's most recent authenticated session.
+    private final LocalDateTime lastLoginAt;
 
     // import fields
+    @SuppressWarnings("unused")
     private List<Long> roles;
+    @SuppressWarnings("unused")
     private Boolean sendPasswordToEmail;
+    @SuppressWarnings("unused")
     private Long staffId;
     @Getter
     private transient Integer rowIndex;
 
-    @SuppressWarnings("unused")
+    @Getter
     private final Collection<OfficeData> allowedOffices;
     private final Collection<RoleData> availableRoles;
     private final Collection<RoleData> selectedRoles;
@@ -84,32 +94,51 @@ public final class AppUserData {
         this.selectedRoles = null;
         this.staff = null;
         this.clients = null;
+        this.isSuspended = null;
+        this.lastLoginAt = null;
     }
 
     public static AppUserData template(final AppUserData user, final Collection<OfficeData> officesForDropdown) {
         return new AppUserData(user.id, user.username, user.email, user.officeId, user.officeName, user.firstname, user.lastname,
-                user.availableRoles, user.selectedRoles, officesForDropdown, user.staff, user.passwordNeverExpires);
+                user.availableRoles, user.selectedRoles, officesForDropdown, user.staff, user.passwordNeverExpires, user.isSuspended,
+                user.lastLoginAt);
     }
 
     public static AppUserData template(final Collection<OfficeData> offices, final Collection<RoleData> availableRoles) {
-        return new AppUserData(null, null, null, null, null, null, null, availableRoles, null, offices, null, null);
+        return new AppUserData(null, null, null, null, null, null, null, availableRoles, null, offices, null, null, null, null);
     }
 
     public static AppUserData dropdown(final Long id, final String username) {
-        return new AppUserData(id, username, null, null, null, null, null, null, null, null, null, null);
+        return new AppUserData(id, username, null, null, null, null, null, null, null, null, null, null, null, null);
+    }
+
+    public static AppUserData instance(final Long id, final String username, final String email, final Long officeId,
+            final String officeName, final String firstname, final String lastname, final Collection<RoleData> availableRoles,
+            final Collection<RoleData> selectedRoles, final Collection<OfficeData> allowedOffices, final StaffData staff,
+            final Boolean passwordNeverExpire, final Boolean isSuspended, final LocalDateTime lastLoginAt) {
+        return new AppUserData(id, username, email, officeId, officeName, firstname, lastname, availableRoles, selectedRoles,
+                allowedOffices, staff, passwordNeverExpire, isSuspended, lastLoginAt);
+    }
+
+    public static AppUserData instance(final Long id, final String username, final String email, final Long officeId,
+            final String officeName, final String firstname, final String lastname, final Collection<RoleData> availableRoles,
+            final Collection<RoleData> selectedRoles, final StaffData staff, final Boolean passwordNeverExpire, final Boolean isSuspended,
+            final LocalDateTime lastLoginAt) {
+        return instance(id, username, email, officeId, officeName, firstname, lastname, availableRoles, selectedRoles, null, staff,
+                passwordNeverExpire, isSuspended, lastLoginAt);
     }
 
     public static AppUserData instance(final Long id, final String username, final String email, final Long officeId,
             final String officeName, final String firstname, final String lastname, final Collection<RoleData> availableRoles,
             final Collection<RoleData> selectedRoles, final StaffData staff, final Boolean passwordNeverExpire) {
-        return new AppUserData(id, username, email, officeId, officeName, firstname, lastname, availableRoles, selectedRoles, null, staff,
-                passwordNeverExpire);
+        return instance(id, username, email, officeId, officeName, firstname, lastname, availableRoles, selectedRoles, staff,
+                passwordNeverExpire, false, null);
     }
 
     private AppUserData(final Long id, final String username, final String email, final Long officeId, final String officeName,
             final String firstname, final String lastname, final Collection<RoleData> availableRoles,
             final Collection<RoleData> selectedRoles, final Collection<OfficeData> allowedOffices, final StaffData staff,
-            final Boolean passwordNeverExpire) {
+            final Boolean passwordNeverExpire, final Boolean isSuspended, final LocalDateTime lastLoginAt) {
         this.id = id;
         this.username = username;
         this.officeId = officeId;
@@ -122,6 +151,12 @@ public final class AppUserData {
         this.selectedRoles = selectedRoles;
         this.staff = staff;
         this.passwordNeverExpires = passwordNeverExpire;
+        this.isSuspended = isSuspended;
+        this.lastLoginAt = lastLoginAt;
+    }
+
+    public Boolean isSuspended() {
+        return this.isSuspended;
     }
 
     public boolean hasIdentifyOf(final Long createdById) {

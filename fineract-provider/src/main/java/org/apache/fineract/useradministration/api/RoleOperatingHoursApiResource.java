@@ -63,8 +63,7 @@ public class RoleOperatingHoursApiResource {
     @GET
     @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Retrieve role operating hours", description = "Retrieves weekly operating hours for a given role")
-    public String retrieveAll(@PathParam("roleId") @Parameter(description = "roleId") final Long roleId,
-            @Context final UriInfo uriInfo) {
+    public String retrieveAll(@PathParam("roleId") @Parameter(description = "roleId") final Long roleId, @Context final UriInfo uriInfo) {
         this.context.authenticatedUser().validateHasReadPermission(RESOURCE_NAME_FOR_PERMISSIONS);
 
         final Collection<RoleOperatingHoursData> hours = this.readPlatformService.retrieveRoleOperatingHours(roleId);
