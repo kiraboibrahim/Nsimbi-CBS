@@ -811,7 +811,8 @@ public final class ClientDataValidator {
         final Long rejectionReasonId = this.fromApiJsonHelper.extractLongNamed(ClientApiConstants.rejectionReasonIdParamName, element);
         final String rejectionReasonText = this.fromApiJsonHelper.extractStringNamed(ClientApiConstants.rejectionReasonParamName, element);
         if (rejectionReasonId != null) {
-            baseDataValidator.reset().parameter(ClientApiConstants.rejectionReasonIdParamName).value(rejectionReasonId).longGreaterThanZero();
+            baseDataValidator.reset().parameter(ClientApiConstants.rejectionReasonIdParamName).value(rejectionReasonId)
+                    .longGreaterThanZero();
         } else if (StringUtils.isNotBlank(rejectionReasonText)) {
             baseDataValidator.reset().parameter(ClientApiConstants.rejectionReasonParamName).value(rejectionReasonText).notBlank();
         } else {
@@ -980,8 +981,8 @@ public final class ClientDataValidator {
         if (this.fromApiJsonHelper.parameterExists("nin", element)) {
             final String nin = this.fromApiJsonHelper.extractStringNamed("nin", element);
             if (StringUtils.isNotBlank(nin) && !nin.matches("^[A-Za-z0-9]{14}$")) {
-                baseDataValidator.reset().parameter("nin").value(nin)
-                        .failWithCode("invalid.nin.format", "NIN must be 14 alphanumeric characters");
+                baseDataValidator.reset().parameter("nin").value(nin).failWithCode("invalid.nin.format",
+                        "NIN must be 14 alphanumeric characters");
             }
         }
 
@@ -992,16 +993,16 @@ public final class ClientDataValidator {
                 if (indObj.has("nin") && !indObj.get("nin").isJsonNull()) {
                     final String nin = indObj.get("nin").getAsString();
                     if (StringUtils.isNotBlank(nin) && !nin.matches("^[A-Za-z0-9]{14}$")) {
-                        baseDataValidator.reset().parameter("nin").value(nin)
-                                .failWithCode("invalid.nin.format", "NIN must be 14 alphanumeric characters");
+                        baseDataValidator.reset().parameter("nin").value(nin).failWithCode("invalid.nin.format",
+                                "NIN must be 14 alphanumeric characters");
                     }
                 }
                 if (indObj.has("cardNumber") && !indObj.get("cardNumber").isJsonNull() && indObj.has("isNin")
                         && indObj.get("isNin").getAsBoolean()) {
                     final String cardNo = indObj.get("cardNumber").getAsString();
                     if (StringUtils.isNotBlank(cardNo) && !cardNo.matches("^[A-Za-z0-9]{14}$")) {
-                        baseDataValidator.reset().parameter("cardNumber").value(cardNo)
-                                .failWithCode("invalid.nin.format", "NIN must be 14 alphanumeric characters");
+                        baseDataValidator.reset().parameter("cardNumber").value(cardNo).failWithCode("invalid.nin.format",
+                                "NIN must be 14 alphanumeric characters");
                     }
                 }
             }
@@ -1032,7 +1033,8 @@ public final class ClientDataValidator {
                         if (nokObj.has("allocationPercentage") && !nokObj.get("allocationPercentage").isJsonNull()) {
                             final BigDecimal alloc = nokObj.get("allocationPercentage").getAsBigDecimal();
                             if (alloc.compareTo(BigDecimal.ZERO) < 0) {
-                                baseDataValidator.reset().parameter(ClientApiConstants.nextOfKinParamName + "[" + i + "].allocationPercentage")
+                                baseDataValidator.reset()
+                                        .parameter(ClientApiConstants.nextOfKinParamName + "[" + i + "].allocationPercentage")
                                         .failWithCode("cannot.be.negative", "Allocation percentage cannot be negative");
                             }
                             totalAllocation = totalAllocation.add(alloc);
@@ -1070,8 +1072,7 @@ public final class ClientDataValidator {
             if (instElement != null && instElement.isJsonObject()) {
                 final JsonObject iObj = instElement.getAsJsonObject();
                 if (!iObj.has("institutionName") || StringUtils.isBlank(iObj.get("institutionName").getAsString())) {
-                    baseDataValidator.reset().parameter("institutionName").failWithCode("cannot.be.blank",
-                            "Institution name is mandatory");
+                    baseDataValidator.reset().parameter("institutionName").failWithCode("cannot.be.blank", "Institution name is mandatory");
                 }
                 if (!iObj.has("tinNumber") || StringUtils.isBlank(iObj.get("tinNumber").getAsString())) {
                     baseDataValidator.reset().parameter("tinNumber").failWithCode("cannot.be.blank", "TIN number is mandatory");

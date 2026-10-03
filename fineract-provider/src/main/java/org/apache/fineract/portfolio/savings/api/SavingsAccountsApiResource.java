@@ -125,7 +125,7 @@ public class SavingsAccountsApiResource {
             + "Example Requests:\n" + "\n" + "savingsaccounts\n" + "\n" + "\n" + "savingsaccounts?fields=name")
     @AlternativeOperationId("retrieveAll_33")
     @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsAccountsApiResourceSwagger.GetSavingsAccountsResponse.class)))
-    public String retrieveAll(@Context final UriInfo uriInfo,
+    public String retrieveAll(@Context final UriInfo uriInfo, @QueryParam("status") @Parameter(description = "status") final String status,
             @QueryParam("externalId") @Parameter(description = "externalId") final String externalId,
             // @QueryParam("underHierarchy") final String hierarchy,
             @QueryParam("offset") @Parameter(description = "offset") final Integer offset,
@@ -138,8 +138,9 @@ public class SavingsAccountsApiResource {
         sqlValidator.validate(orderBy);
         sqlValidator.validate(sortOrder);
         sqlValidator.validate(externalId);
-        final SearchParameters searchParameters = SearchParameters.builder().limit(limit).externalId(externalId).offset(offset)
-                .orderBy(orderBy).sortOrder(sortOrder).build();
+        sqlValidator.validate(status);
+        final SearchParameters searchParameters = SearchParameters.builder().limit(limit).status(status).externalId(externalId)
+                .offset(offset).orderBy(orderBy).sortOrder(sortOrder).build();
 
         final Page<SavingsAccountData> products = savingsAccountReadPlatformService.retrieveAll(searchParameters);
 
@@ -494,6 +495,13 @@ public class SavingsAccountsApiResource {
         if (is(commandParam, "updateWithHoldTax")) {
             final CommandWrapper commandRequest = new CommandWrapperBuilder().withJson(apiRequestBodyAsJson).updateWithHoldTax(accountId)
                     .build();
+            final CommandProcessingResult result = commandsSourceWritePlatformService.logCommandSource(commandRequest);
+            return toApiJsonSerializer.serialize(result);
+        }
+
+        if (is(commandParam, "updateSmsAlertConfig")) {
+            final CommandWrapper commandRequest = new CommandWrapperBuilder().withJson(apiRequestBodyAsJson)
+                    .updateSavingsAccountSmsAlertConfig(accountId).build();
             final CommandProcessingResult result = commandsSourceWritePlatformService.logCommandSource(commandRequest);
             return toApiJsonSerializer.serialize(result);
         }

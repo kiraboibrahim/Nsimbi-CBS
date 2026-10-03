@@ -278,4 +278,8 @@
     <include file="parts/0256_add_chart_of_accounts.xml" relativeToChangelogFile="true" />
     <include file="parts/0257_add_permissions_for_user_limits_operating_hours_and_office_assignments.xml" relativeToChangelogFile="true" />
     <include file="parts/0258_add_customer_cif_tables.xml" relativeToChangelogFile="true" />
+    <include file="parts/0259_add_savings_sms_alert_configs.xml" relativeToChangelogFile="true" />
+    <include file="parts/0260_add_fixed_deposits_tables.xml" relativeToChangelogFile="true" />
+    <include file="parts/0261_add_standing_orders_table.xml" relativeToChangelogFile="true" />
+    <include file="parts/0262_add_debit_card_issuances_table.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

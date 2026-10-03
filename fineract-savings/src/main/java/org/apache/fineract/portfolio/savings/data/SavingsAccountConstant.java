@@ -39,7 +39,10 @@ public class SavingsAccountConstant extends SavingsApiConstants {
             withdrawalFeeForTransfersParamName, feeAmountParamName, feeOnMonthDayParamName, chargesParamName, allowOverdraftParamName,
             overdraftLimitParamName, minRequiredBalanceParamName, enforceMinRequiredBalanceParamName, lienAllowedParamName,
             maxAllowedLienLimitParamName, nominalAnnualInterestRateOverdraftParamName, minOverdraftForInterestCalculationParamName,
-            withHoldTaxParamName, datatables, gsimApplicationId, gsimLastApplication));
+            withHoldTaxParamName, datatables, gsimApplicationId, gsimLastApplication, "smsAlertConfig", "notifyOnDeposit",
+            "notifyOnWithdrawal", "notifyOnEarningInterest", "notifyOnEarningDividends", "notifyOnOutgoingTransfer",
+            "notifyOnIncomingTransfer", "notifyOnDirectDebit", "notifyOnDirectCredit", "notifyOnStandingOrder", "notifyOnLoanApplication",
+            "notifyOnLoanDisbursement", "notifyOnLoanPayment", "notifyOnLoanRefund", "notifyOnHold"));
 
     /**
      * These parameters will match the class level parameters of {@link SavingsAccountData}. Where possible, we try to

@@ -63,8 +63,8 @@ public class CustomerInstitution extends AbstractPersistableCustom<Long> {
     private String residenceOwnership;
 
     public CustomerInstitution(final Client client, final String institutionName, final String registrationNumber,
-            final LocalDate registrationDate, final String tinNumber, final String businessType,
-            final String institutionCategory, final String residenceOwnership) {
+            final LocalDate registrationDate, final String tinNumber, final String businessType, final String institutionCategory,
+            final String residenceOwnership) {
         this.client = client;
         this.institutionName = institutionName;
         this.registrationNumber = registrationNumber;

@@ -52,8 +52,8 @@ public class CustomerExternalBank extends AbstractPersistableCustom<Long> {
     @Column(name = "account_name", length = 150)
     private String accountName;
 
-    public CustomerExternalBank(final Client client, final String bankName, final String branchName,
-            final String accountNumber, final String accountName) {
+    public CustomerExternalBank(final Client client, final String bankName, final String branchName, final String accountNumber,
+            final String accountName) {
         this.client = client;
         this.bankName = bankName;
         this.branchName = branchName;

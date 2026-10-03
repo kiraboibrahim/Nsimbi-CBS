@@ -44,6 +44,9 @@ public class UserTransactionLimitValidator {
         if (amount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Transaction amount cannot be negative");
         }
+        if (user.hasSpecificPermissionTo("ALL_FUNCTIONS")) {
+            return;
+        }
 
         Optional<UserTransactionLimit> limitOpt = this.userTransactionLimitRepository.findByAppUserIdAndLimitType(user.getId(), type);
 

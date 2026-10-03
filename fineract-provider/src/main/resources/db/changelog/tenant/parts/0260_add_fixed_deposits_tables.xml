@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet author="fineract" id="1">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_fixed_deposits"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_fixed_deposits">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_fixed_deposits"/>
+            </column>
+            <column name="deposit_number" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_fixed_deposits_deposit_number"/>
+            </column>
+            <column name="customer_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_fixed_deposits_customer" references="m_client(id)"/>
+            </column>
+            <column name="funding_source" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="funding_savings_account_id" type="BIGINT">
+                <constraints nullable="true" foreignKeyName="fk_fixed_deposits_funding_account" references="m_savings_account(id)"/>
+            </column>
+            <column name="payout_savings_account_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_fixed_deposits_payout_account" references="m_savings_account(id)"/>
+            </column>
+            <column name="depositor_name" type="VARCHAR(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="depositor_phone" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="principal_amount" type="DECIMAL(18,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="starts_on" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="period_months" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="interest_rate_annual" type="DECIMAL(5,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="interest_interval" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payout_option" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValue="PENDING" name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="matures_at" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="0.00" name="accrued_interest" type="DECIMAL(18,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by_id" type="BIGINT">
+                <constraints nullable="true" foreignKeyName="fk_fixed_deposits_created_by" references="m_appuser(id)"/>
+            </column>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="approved_by_id" type="BIGINT">
+                <constraints nullable="true" foreignKeyName="fk_fixed_deposits_approved_by" references="m_appuser(id)"/>
+            </column>
+            <column name="approved_at" type="TIMESTAMP"/>
+            <column name="rejected_by_id" type="BIGINT">
+                <constraints nullable="true" foreignKeyName="fk_fixed_deposits_rejected_by" references="m_appuser(id)"/>
+            </column>
+            <column name="rejected_at" type="TIMESTAMP"/>
+            <column name="rejection_reason" type="VARCHAR(500)"/>
+            <column name="closed_by_id" type="BIGINT">
+                <constraints nullable="true" foreignKeyName="fk_fixed_deposits_closed_by" references="m_appuser(id)"/>
+            </column>
+            <column name="closed_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet author="fineract" id="2">
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="CREATE_FIXEDDEPOSIT"/>
+            <column name="entity_name" value="FIXEDDEPOSIT"/>
+            <column name="action_name" value="CREATE"/>
+            <column name="can_maker_checker" valueBoolean="true"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="CREATE_FIXEDDEPOSIT_CHECKER"/>
+            <column name="entity_name" value="FIXEDDEPOSIT"/>
+            <column name="action_name" value="CREATE_CHECKER"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="APPROVE_FIXEDDEPOSIT"/>
+            <column name="entity_name" value="FIXEDDEPOSIT"/>
+            <column name="action_name" value="APPROVE"/>
+            <column name="can_maker_checker" valueBoolean="true"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="APPROVE_FIXEDDEPOSIT_CHECKER"/>
+            <column name="entity_name" value="FIXEDDEPOSIT"/>
+            <column name="action_name" value="APPROVE_CHECKER"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="REJECT_FIXEDDEPOSIT"/>
+            <column name="entity_name" value="FIXEDDEPOSIT"/>
+            <column name="action_name" value="REJECT"/>
+            <column name="can_maker_checker" valueBoolean="true"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="REJECT_FIXEDDEPOSIT_CHECKER"/>
+            <column name="entity_name" value="FIXEDDEPOSIT"/>
+            <column name="action_name" value="REJECT_CHECKER"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="TERMINATE_FIXEDDEPOSIT"/>
+            <column name="entity_name" value="FIXEDDEPOSIT"/>
+            <column name="action_name" value="TERMINATE"/>
+            <column name="can_maker_checker" valueBoolean="true"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="TERMINATE_FIXEDDEPOSIT_CHECKER"/>
+            <column name="entity_name" value="FIXEDDEPOSIT"/>
+            <column name="action_name" value="TERMINATE_CHECKER"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="READ_FIXEDDEPOSIT"/>
+            <column name="entity_name" value="FIXEDDEPOSIT"/>
+            <column name="action_name" value="READ"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

@@ -22,8 +22,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface CustomerNextOfKinRepository
-        extends JpaRepository<CustomerNextOfKin, Long>, JpaSpecificationExecutor<CustomerNextOfKin> {
+public interface CustomerNextOfKinRepository extends JpaRepository<CustomerNextOfKin, Long>, JpaSpecificationExecutor<CustomerNextOfKin> {
 
     List<CustomerNextOfKin> findByClientId(Long clientId);
 

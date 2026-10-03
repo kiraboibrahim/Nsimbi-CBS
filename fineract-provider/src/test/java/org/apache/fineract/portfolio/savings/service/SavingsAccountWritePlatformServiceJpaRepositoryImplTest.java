@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.fineract.infrastructure.businessdate.domain.BusinessDateType;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -75,9 +76,14 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountChargeReposito
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountRepositoryWrapper;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransactionRepository;
+import org.apache.fineract.portfolio.savings.domain.SavingsSmsAlertConfig;
+import org.apache.fineract.portfolio.savings.domain.SavingsSmsAlertConfigRepository;
 import org.apache.fineract.portfolio.savings.exception.SavingsAccountTransactionNotFoundException;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.apache.fineract.useradministration.domain.AppUserRepositoryWrapper;
+import org.apache.fineract.useradministration.domain.TransactionLimitType;
+import org.apache.fineract.useradministration.exception.TransactionLimitExceededException;
+import org.apache.fineract.useradministration.service.UserTransactionLimitValidator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -151,6 +157,10 @@ class SavingsAccountWritePlatformServiceJpaRepositoryImplTest {
     private ExternalIdFactory externalIdFactory;
     @Mock
     private ErrorHandler errorHandler;
+    @Mock
+    private UserTransactionLimitValidator userTransactionLimitValidator;
+    @Mock
+    private SavingsSmsAlertConfigRepository savingsSmsAlertConfigRepository;
 
     @InjectMocks
     private SavingsAccountWritePlatformServiceJpaRepositoryImpl service;
@@ -480,5 +490,55 @@ class SavingsAccountWritePlatformServiceJpaRepositoryImplTest {
 
         // Then
         assertThat(result.getTransactionId()).isEqualTo(expectedTransactionId.toString());
+    }
+
+    @Test
+    void deposit_shouldEnforceUserTransactionLimit() {
+        Long savingsId = 1L;
+        JsonCommand command = mock(JsonCommand.class);
+        AppUser currentUser = mock(AppUser.class);
+        when(context.authenticatedUser()).thenReturn(currentUser);
+        when(command.bigDecimalValueOfParameterNamed("transactionAmount")).thenReturn(new BigDecimal("10000000.00"));
+        when(savingAccountAssembler.getPivotConfigStatus()).thenReturn(false);
+        SavingsAccount savingsAccount = mock(SavingsAccount.class);
+        when(savingAccountAssembler.assembleFrom(savingsId, false)).thenReturn(savingsAccount);
+
+        Mockito.doThrow(new TransactionLimitExceededException(TransactionLimitType.DEPOSIT, new BigDecimal("10000000.00"), BigDecimal.ZERO,
+                new BigDecimal("5000000.00"))).when(userTransactionLimitValidator)
+                .validate(currentUser, TransactionLimitType.DEPOSIT, new BigDecimal("10000000.00"));
+
+        org.junit.jupiter.api.Assertions.assertThrows(TransactionLimitExceededException.class, () -> service.deposit(savingsId, command));
+    }
+
+    @Test
+    void withdrawal_shouldEnforceUserTransactionLimit() {
+        Long savingsId = 1L;
+        JsonCommand command = mock(JsonCommand.class);
+        AppUser currentUser = mock(AppUser.class);
+        when(context.authenticatedUser()).thenReturn(currentUser);
+        when(command.bigDecimalValueOfParameterNamed("transactionAmount")).thenReturn(new BigDecimal("7000000.00"));
+
+        Mockito.doThrow(new TransactionLimitExceededException(TransactionLimitType.WITHDRAWAL, new BigDecimal("7000000.00"),
+                BigDecimal.ZERO, new BigDecimal("2000000.00"))).when(userTransactionLimitValidator)
+                .validate(currentUser, TransactionLimitType.WITHDRAWAL, new BigDecimal("7000000.00"));
+
+        org.junit.jupiter.api.Assertions.assertThrows(TransactionLimitExceededException.class,
+                () -> service.withdrawal(savingsId, command));
+    }
+
+    @Test
+    void updateSmsAlertConfig_shouldPersistSmsAlertConfiguration() {
+        Long savingsId = 1L;
+        JsonCommand command = mock(JsonCommand.class);
+        SavingsAccount savingsAccount = mock(SavingsAccount.class);
+        when(savingsAccount.getId()).thenReturn(savingsId);
+        when(savingAccountAssembler.assembleFrom(savingsId, false)).thenReturn(savingsAccount);
+        when(savingsSmsAlertConfigRepository.findBySavingsAccountId(savingsId)).thenReturn(Optional.empty());
+
+        CommandProcessingResult result = service.updateSmsAlertConfig(savingsId, command);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSavingsId()).isEqualTo(savingsId);
+        Mockito.verify(savingsSmsAlertConfigRepository, Mockito.times(1)).save(any(SavingsSmsAlertConfig.class));
     }
 }

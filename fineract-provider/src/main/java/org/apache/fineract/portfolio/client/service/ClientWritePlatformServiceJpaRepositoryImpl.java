@@ -1005,8 +1005,8 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
 
         CodeValue rejectionReason = null;
         if (rejectionReasonId != null) {
-            rejectionReason = this.codeValueRepository
-                    .findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.CLIENT_REJECT_REASON, rejectionReasonId);
+            rejectionReason = this.codeValueRepository.findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.CLIENT_REJECT_REASON,
+                    rejectionReasonId);
         }
 
         if (client.isNotPending()) {
@@ -1164,14 +1164,27 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
             final JsonElement indElement = element.getAsJsonObject().get(ClientApiConstants.customerIndividualParamName);
             if (indElement != null && indElement.isJsonObject()) {
                 final JsonObject indObj = indElement.getAsJsonObject();
-                final String salutation = indObj.has("salutation") && !indObj.get("salutation").isJsonNull() ? indObj.get("salutation").getAsString() : null;
-                final String maritalStatus = indObj.has("maritalStatus") && !indObj.get("maritalStatus").isJsonNull() ? indObj.get("maritalStatus").getAsString() : null;
-                final boolean isDependent = indObj.has("isDependent") && !indObj.get("isDependent").isJsonNull() && indObj.get("isDependent").getAsBoolean();
+                final String salutation = indObj.has("salutation") && !indObj.get("salutation").isJsonNull()
+                        ? indObj.get("salutation").getAsString()
+                        : null;
+                final String maritalStatus = indObj.has("maritalStatus") && !indObj.get("maritalStatus").isJsonNull()
+                        ? indObj.get("maritalStatus").getAsString()
+                        : null;
+                final boolean isDependent = indObj.has("isDependent") && !indObj.get("isDependent").isJsonNull()
+                        && indObj.get("isDependent").getAsBoolean();
                 final boolean isPwd = indObj.has("isPwd") && !indObj.get("isPwd").isJsonNull() && indObj.get("isPwd").getAsBoolean();
-                final String countryOfBirth = indObj.has("countryOfBirth") && !indObj.get("countryOfBirth").isJsonNull() ? indObj.get("countryOfBirth").getAsString() : null;
-                final String nationality = indObj.has("nationality") && !indObj.get("nationality").isJsonNull() ? indObj.get("nationality").getAsString() : "Ugandan";
-                final String homeOwnership = indObj.has("homeOwnership") && !indObj.get("homeOwnership").isJsonNull() ? indObj.get("homeOwnership").getAsString() : null;
-                final String cardNumber = indObj.has("cardNumber") && !indObj.get("cardNumber").isJsonNull() ? indObj.get("cardNumber").getAsString() : null;
+                final String countryOfBirth = indObj.has("countryOfBirth") && !indObj.get("countryOfBirth").isJsonNull()
+                        ? indObj.get("countryOfBirth").getAsString()
+                        : null;
+                final String nationality = indObj.has("nationality") && !indObj.get("nationality").isJsonNull()
+                        ? indObj.get("nationality").getAsString()
+                        : "Ugandan";
+                final String homeOwnership = indObj.has("homeOwnership") && !indObj.get("homeOwnership").isJsonNull()
+                        ? indObj.get("homeOwnership").getAsString()
+                        : null;
+                final String cardNumber = indObj.has("cardNumber") && !indObj.get("cardNumber").isJsonNull()
+                        ? indObj.get("cardNumber").getAsString()
+                        : null;
 
                 final CustomerIndividual individual = new CustomerIndividual(client, salutation, maritalStatus, isDependent, isPwd,
                         countryOfBirth, nationality, homeOwnership, cardNumber);
@@ -1185,9 +1198,13 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
             final JsonElement groupElement = element.getAsJsonObject().get(ClientApiConstants.customerGroupParamName);
             if (groupElement != null && groupElement.isJsonObject()) {
                 final JsonObject gObj = groupElement.getAsJsonObject();
-                final String groupName = gObj.has("groupName") && !gObj.get("groupName").isJsonNull() ? gObj.get("groupName").getAsString() : "";
-                final String groupType = gObj.has("groupType") && !gObj.get("groupType").isJsonNull() ? gObj.get("groupType").getAsString() : "Members";
-                final String registrationNumber = gObj.has("registrationNumber") && !gObj.get("registrationNumber").isJsonNull() ? gObj.get("registrationNumber").getAsString() : "";
+                final String groupName = gObj.has("groupName") && !gObj.get("groupName").isJsonNull() ? gObj.get("groupName").getAsString()
+                        : "";
+                final String groupType = gObj.has("groupType") && !gObj.get("groupType").isJsonNull() ? gObj.get("groupType").getAsString()
+                        : "Members";
+                final String registrationNumber = gObj.has("registrationNumber") && !gObj.get("registrationNumber").isJsonNull()
+                        ? gObj.get("registrationNumber").getAsString()
+                        : "";
 
                 final CustomerGroup group = new CustomerGroup(client, groupName, groupType, registrationNumber);
                 this.customerGroupRepository.save(group);
@@ -1200,13 +1217,24 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
             final JsonElement instElement = element.getAsJsonObject().get(ClientApiConstants.customerInstitutionParamName);
             if (instElement != null && instElement.isJsonObject()) {
                 final JsonObject iObj = instElement.getAsJsonObject();
-                final String institutionName = iObj.has("institutionName") && !iObj.get("institutionName").isJsonNull() ? iObj.get("institutionName").getAsString() : "";
-                final String registrationNumber = iObj.has("registrationNumber") && !iObj.get("registrationNumber").isJsonNull() ? iObj.get("registrationNumber").getAsString() : "";
+                final String institutionName = iObj.has("institutionName") && !iObj.get("institutionName").isJsonNull()
+                        ? iObj.get("institutionName").getAsString()
+                        : "";
+                final String registrationNumber = iObj.has("registrationNumber") && !iObj.get("registrationNumber").isJsonNull()
+                        ? iObj.get("registrationNumber").getAsString()
+                        : "";
                 final LocalDate registrationDate = this.fromApiJsonHelper.extractLocalDateNamed("registrationDate", iObj);
-                final String tinNumber = iObj.has("tinNumber") && !iObj.get("tinNumber").isJsonNull() ? iObj.get("tinNumber").getAsString() : "";
-                final String businessType = iObj.has("businessType") && !iObj.get("businessType").isJsonNull() ? iObj.get("businessType").getAsString() : null;
-                final String institutionCategory = iObj.has("institutionCategory") && !iObj.get("institutionCategory").isJsonNull() ? iObj.get("institutionCategory").getAsString() : null;
-                final String residenceOwnership = iObj.has("residenceOwnership") && !iObj.get("residenceOwnership").isJsonNull() ? iObj.get("residenceOwnership").getAsString() : null;
+                final String tinNumber = iObj.has("tinNumber") && !iObj.get("tinNumber").isJsonNull() ? iObj.get("tinNumber").getAsString()
+                        : "";
+                final String businessType = iObj.has("businessType") && !iObj.get("businessType").isJsonNull()
+                        ? iObj.get("businessType").getAsString()
+                        : null;
+                final String institutionCategory = iObj.has("institutionCategory") && !iObj.get("institutionCategory").isJsonNull()
+                        ? iObj.get("institutionCategory").getAsString()
+                        : null;
+                final String residenceOwnership = iObj.has("residenceOwnership") && !iObj.get("residenceOwnership").isJsonNull()
+                        ? iObj.get("residenceOwnership").getAsString()
+                        : null;
 
                 final CustomerInstitution institution = new CustomerInstitution(client, institutionName, registrationNumber,
                         registrationDate, tinNumber, businessType, institutionCategory, residenceOwnership);
@@ -1220,7 +1248,8 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
             final JsonElement jointElement = element.getAsJsonObject().get(ClientApiConstants.customerJointParamName);
             if (jointElement != null && jointElement.isJsonObject()) {
                 final JsonObject jObj = jointElement.getAsJsonObject();
-                final String jointName = jObj.has("jointName") && !jObj.get("jointName").isJsonNull() ? jObj.get("jointName").getAsString() : "";
+                final String jointName = jObj.has("jointName") && !jObj.get("jointName").isJsonNull() ? jObj.get("jointName").getAsString()
+                        : "";
 
                 final CustomerJoint joint = new CustomerJoint(client, jointName);
                 this.customerJointRepository.save(joint);
@@ -1238,14 +1267,26 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
                     final JsonElement item = nokArray.get(i);
                     if (item.isJsonObject()) {
                         final JsonObject nokObj = item.getAsJsonObject();
-                        final String firstName = nokObj.has("firstName") && !nokObj.get("firstName").isJsonNull() ? nokObj.get("firstName").getAsString() : "";
-                        final String secondName = nokObj.has("secondName") && !nokObj.get("secondName").isJsonNull() ? nokObj.get("secondName").getAsString() : "";
-                        final String phone = nokObj.has("phone") && !nokObj.get("phone").isJsonNull() ? nokObj.get("phone").getAsString() : "";
-                        final String physicalAddress = nokObj.has("physicalAddress") && !nokObj.get("physicalAddress").isJsonNull() ? nokObj.get("physicalAddress").getAsString() : null;
-                        final String relationship = nokObj.has("relationship") && !nokObj.get("relationship").isJsonNull() ? nokObj.get("relationship").getAsString() : "";
-                        final BigDecimal allocationPercentage = nokObj.has("allocationPercentage") && !nokObj.get("allocationPercentage").isJsonNull() ? nokObj.get("allocationPercentage").getAsBigDecimal() : BigDecimal.ZERO;
+                        final String firstName = nokObj.has("firstName") && !nokObj.get("firstName").isJsonNull()
+                                ? nokObj.get("firstName").getAsString()
+                                : "";
+                        final String secondName = nokObj.has("secondName") && !nokObj.get("secondName").isJsonNull()
+                                ? nokObj.get("secondName").getAsString()
+                                : "";
+                        final String phone = nokObj.has("phone") && !nokObj.get("phone").isJsonNull() ? nokObj.get("phone").getAsString()
+                                : "";
+                        final String physicalAddress = nokObj.has("physicalAddress") && !nokObj.get("physicalAddress").isJsonNull()
+                                ? nokObj.get("physicalAddress").getAsString()
+                                : null;
+                        final String relationship = nokObj.has("relationship") && !nokObj.get("relationship").isJsonNull()
+                                ? nokObj.get("relationship").getAsString()
+                                : "";
+                        final BigDecimal allocationPercentage = nokObj.has("allocationPercentage")
+                                && !nokObj.get("allocationPercentage").isJsonNull() ? nokObj.get("allocationPercentage").getAsBigDecimal()
+                                        : BigDecimal.ZERO;
 
-                        final CustomerNextOfKin nok = new CustomerNextOfKin(client, firstName, secondName, phone, physicalAddress, relationship, allocationPercentage);
+                        final CustomerNextOfKin nok = new CustomerNextOfKin(client, firstName, secondName, phone, physicalAddress,
+                                relationship, allocationPercentage);
                         this.customerNextOfKinRepository.save(nok);
                         nokList.add(nok);
                     }
@@ -1259,9 +1300,15 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
             final JsonElement empElement = element.getAsJsonObject().get(ClientApiConstants.employmentIncomeParamName);
             if (empElement != null && empElement.isJsonObject()) {
                 final JsonObject empObj = empElement.getAsJsonObject();
-                final String occupation = empObj.has("occupation") && !empObj.get("occupation").isJsonNull() ? empObj.get("occupation").getAsString() : null;
-                final String employerName = empObj.has("employerName") && !empObj.get("employerName").isJsonNull() ? empObj.get("employerName").getAsString() : null;
-                final BigDecimal monthlyIncome = empObj.has("monthlyIncome") && !empObj.get("monthlyIncome").isJsonNull() ? empObj.get("monthlyIncome").getAsBigDecimal() : null;
+                final String occupation = empObj.has("occupation") && !empObj.get("occupation").isJsonNull()
+                        ? empObj.get("occupation").getAsString()
+                        : null;
+                final String employerName = empObj.has("employerName") && !empObj.get("employerName").isJsonNull()
+                        ? empObj.get("employerName").getAsString()
+                        : null;
+                final BigDecimal monthlyIncome = empObj.has("monthlyIncome") && !empObj.get("monthlyIncome").isJsonNull()
+                        ? empObj.get("monthlyIncome").getAsBigDecimal()
+                        : null;
 
                 final CustomerEmploymentIncome emp = new CustomerEmploymentIncome(client, occupation, employerName, monthlyIncome);
                 this.customerEmploymentIncomeRepository.save(emp);
@@ -1279,12 +1326,21 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
                     final JsonElement item = bankArray.get(i);
                     if (item.isJsonObject()) {
                         final JsonObject bObj = item.getAsJsonObject();
-                        final String bankName = bObj.has("bankName") && !bObj.get("bankName").isJsonNull() ? bObj.get("bankName").getAsString() : "";
-                        final String branchName = bObj.has("branchName") && !bObj.get("branchName").isJsonNull() ? bObj.get("branchName").getAsString() : null;
-                        final String accountNumber = bObj.has("accountNumber") && !bObj.get("accountNumber").isJsonNull() ? bObj.get("accountNumber").getAsString() : "";
-                        final String accountName = bObj.has("accountName") && !bObj.get("accountName").isJsonNull() ? bObj.get("accountName").getAsString() : null;
+                        final String bankName = bObj.has("bankName") && !bObj.get("bankName").isJsonNull()
+                                ? bObj.get("bankName").getAsString()
+                                : "";
+                        final String branchName = bObj.has("branchName") && !bObj.get("branchName").isJsonNull()
+                                ? bObj.get("branchName").getAsString()
+                                : null;
+                        final String accountNumber = bObj.has("accountNumber") && !bObj.get("accountNumber").isJsonNull()
+                                ? bObj.get("accountNumber").getAsString()
+                                : "";
+                        final String accountName = bObj.has("accountName") && !bObj.get("accountName").isJsonNull()
+                                ? bObj.get("accountName").getAsString()
+                                : null;
 
-                        final CustomerExternalBank bank = new CustomerExternalBank(client, bankName, branchName, accountNumber, accountName);
+                        final CustomerExternalBank bank = new CustomerExternalBank(client, bankName, branchName, accountNumber,
+                                accountName);
                         this.customerExternalBankRepository.save(bank);
                         bankList.add(bank);
                     }

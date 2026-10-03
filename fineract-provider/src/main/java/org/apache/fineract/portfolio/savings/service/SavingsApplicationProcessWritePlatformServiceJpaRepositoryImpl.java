@@ -83,6 +83,8 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountRepositoryWrap
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductRepository;
+import org.apache.fineract.portfolio.savings.domain.SavingsSmsAlertConfig;
+import org.apache.fineract.portfolio.savings.domain.SavingsSmsAlertConfigRepository;
 import org.apache.fineract.portfolio.savings.exception.SavingsProductNotFoundException;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.springframework.dao.DataAccessException;
@@ -113,6 +115,7 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
     private final GSIMRepositoy gsimRepository;
     private final GroupRepositoryWrapper groupRepositoryWrapper;
     private final GroupSavingsIndividualMonitoringWritePlatformService gsimWritePlatformService;
+    private final SavingsSmsAlertConfigRepository savingsSmsAlertConfigRepository;
 
     @Transactional
     @Override
@@ -239,6 +242,12 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
             this.entityDatatableChecksWritePlatformService.runTheCheckForProduct(savingsId, EntityTables.SAVINGS.getName(),
                     StatusEnum.CREATE.getValue(), EntityTables.SAVINGS.getForeignKeyColumnNameOnDatatable(), account.productId());
 
+            if (this.savingsSmsAlertConfigRepository != null) {
+                final SavingsSmsAlertConfig smsAlertConfig = SavingsSmsAlertConfig.createDefault(account);
+                smsAlertConfig.update(command, new LinkedHashMap<>());
+                this.savingsSmsAlertConfigRepository.save(smsAlertConfig);
+            }
+
             businessEventNotifierService.notifyPostBusinessEvent(new SavingsCreateBusinessEvent(account));
 
             return new CommandProcessingResultBuilder() //
@@ -362,6 +371,17 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
                 this.savingAccountRepository.saveAndFlush(account);
             }
 
+            if (this.savingsSmsAlertConfigRepository != null) {
+                final SavingsSmsAlertConfig smsAlertConfig = this.savingsSmsAlertConfigRepository.findBySavingsAccountId(account.getId())
+                        .orElseGet(() -> SavingsSmsAlertConfig.createDefault(account));
+                final Map<String, Object> smsChanges = new LinkedHashMap<>();
+                smsAlertConfig.update(command, smsChanges);
+                if (!smsChanges.isEmpty() || smsAlertConfig.getId() == null) {
+                    this.savingsSmsAlertConfigRepository.save(smsAlertConfig);
+                    changes.putAll(smsChanges);
+                }
+            }
+
             return new CommandProcessingResultBuilder() //
                     .withCommandId(command.commandId()) //
                     .withEntityId(savingsId) //
@@ -399,6 +419,22 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
             if (!dataValidationErrors.isEmpty()) {
                 throw new PlatformApiDataValidationException(dataValidationErrors);
             }
+        }
+
+        if (account.getAccountBalance() != null && account.getAccountBalance().compareTo(BigDecimal.ZERO) != 0) {
+            final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+            final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
+                    .resource(SAVINGS_ACCOUNT_RESOURCE_NAME + SavingsApiConstants.deleteApplicationAction);
+
+            baseDataValidator.reset().parameter("accountBalance").failWithCode("cannot.delete.account.with.non.zero.balance",
+                    "Cannot delete savings account with non-zero balance");
+
+            throw new PlatformApiDataValidationException(dataValidationErrors);
+        }
+
+        if (this.savingsSmsAlertConfigRepository != null) {
+            this.savingsSmsAlertConfigRepository.findBySavingsAccountId(account.getId())
+                    .ifPresent(this.savingsSmsAlertConfigRepository::delete);
         }
 
         this.noteRepository.deleteAllBySavingsAccount(account);
@@ -678,6 +714,11 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
         generateAccountNumber(account);
         // post journal entries for activation charges
         this.savingsAccountDomainService.postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, false);
+
+        if (this.savingsSmsAlertConfigRepository != null) {
+            final SavingsSmsAlertConfig smsAlertConfig = SavingsSmsAlertConfig.createDefault(account);
+            this.savingsSmsAlertConfigRepository.save(smsAlertConfig);
+        }
 
         return new CommandProcessingResultBuilder() //
                 .withSavingsId(account.getId()) //

@@ -118,6 +118,8 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountRepositoryWrap
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransactionRepository;
+import org.apache.fineract.portfolio.savings.domain.SavingsSmsAlertConfig;
+import org.apache.fineract.portfolio.savings.domain.SavingsSmsAlertConfigRepository;
 import org.apache.fineract.portfolio.savings.exception.PostInterestAsOnDateException;
 import org.apache.fineract.portfolio.savings.exception.PostInterestAsOnDateException.PostInterestAsOnExceptionType;
 import org.apache.fineract.portfolio.savings.exception.PostInterestClosingDateException;
@@ -129,6 +131,8 @@ import org.apache.fineract.portfolio.savings.exception.TransactionUpdateNotAllow
 import org.apache.fineract.portfolio.transfer.api.TransferApiConstants;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.apache.fineract.useradministration.domain.AppUserRepositoryWrapper;
+import org.apache.fineract.useradministration.domain.TransactionLimitType;
+import org.apache.fineract.useradministration.service.UserTransactionLimitValidator;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -168,6 +172,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     private final SavingsAccountActivationService savingsAccountActivationService;
     private final ExternalIdFactory externalIdFactory;
     private final ErrorHandler errorHandler;
+    private final UserTransactionLimitValidator userTransactionLimitValidator;
+    private final SavingsSmsAlertConfigRepository savingsSmsAlertConfigRepository;
 
     @Transactional
     @Override
@@ -279,9 +285,13 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     @Transactional
     @Override
     public CommandProcessingResult deposit(final Long savingsId, final JsonCommand command) {
-        this.context.authenticatedUser();
+        final AppUser currentUser = this.context.authenticatedUser();
 
         this.savingsAccountTransactionDataValidator.validate(command);
+        final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
+        if (currentUser != null && this.userTransactionLimitValidator != null) {
+            this.userTransactionLimitValidator.validate(currentUser, TransactionLimitType.DEPOSIT, transactionAmount);
+        }
         boolean isGsim = false;
 
         final boolean backdatedTxnsAllowedTill = this.savingAccountAssembler.getPivotConfigStatus();
@@ -298,7 +308,6 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final DateTimeFormatter fmt = DateTimeFormatter.ofPattern(command.dateFormat()).withLocale(locale);
 
         final LocalDate transactionDate = command.localDateValueOfParameterNamed("transactionDate");
-        final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
         final ExternalId externalId = this.externalIdFactory.createFromCommand(command, SavingsApiConstants.externalIdParamName);
 
         this.savingsAccountTransactionDataValidator.validateTransactionWithPivotDate(transactionDate, account);
@@ -352,6 +361,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     @Transactional
     @Override
     public CommandProcessingResult withdrawal(final Long savingsId, final JsonCommand command) {
+        final AppUser currentUser = this.context.authenticatedUser();
 
         this.savingsAccountTransactionDataValidator.validate(command);
 
@@ -359,6 +369,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
         final LocalDate transactionDate = command.localDateValueOfParameterNamed("transactionDate");
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
+        if (currentUser != null && this.userTransactionLimitValidator != null) {
+            this.userTransactionLimitValidator.validate(currentUser, TransactionLimitType.WITHDRAWAL, transactionAmount);
+        }
         final ExternalId externalId = this.externalIdFactory.createFromCommand(command, SavingsApiConstants.externalIdParamName);
 
         final Locale locale = command.extractLocale();
@@ -2067,6 +2080,26 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                 .withClientId(account.clientId()) //
                 .withGroupId(account.groupId()) //
                 .withSavingsId(savingsId) //
+                .with(changes) //
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult updateSmsAlertConfig(final Long savingsAccountId, final JsonCommand command) {
+        final SavingsAccount account = this.savingAccountAssembler.assembleFrom(savingsAccountId, false);
+        final SavingsSmsAlertConfig smsAlertConfig = this.savingsSmsAlertConfigRepository.findBySavingsAccountId(account.getId())
+                .orElseGet(() -> SavingsSmsAlertConfig.createDefault(account));
+        final Map<String, Object> changes = new LinkedHashMap<>();
+        smsAlertConfig.update(command, changes);
+        if (!changes.isEmpty() || smsAlertConfig.getId() == null) {
+            this.savingsSmsAlertConfigRepository.save(smsAlertConfig);
+        }
+
+        return new CommandProcessingResultBuilder() //
+                .withCommandId(command.commandId()) //
+                .withEntityId(savingsAccountId) //
+                .withSavingsId(savingsAccountId) //
                 .with(changes) //
                 .build();
     }

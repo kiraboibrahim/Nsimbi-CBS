@@ -153,4 +153,10 @@ class UserTransactionLimitValidatorTest {
         assertThrows(TransactionLimitExceededException.class,
                 () -> validator.validate(appUser, TransactionLimitType.JVS, new BigDecimal("2000000.00")));
     }
+
+    @Test
+    void shouldExemptUserWithAllFunctionsPermission() {
+        when(appUser.hasSpecificPermissionTo("ALL_FUNCTIONS")).thenReturn(true);
+        assertDoesNotThrow(() -> validator.validate(appUser, TransactionLimitType.DEPOSIT, new BigDecimal("999999999999")));
+    }
 }

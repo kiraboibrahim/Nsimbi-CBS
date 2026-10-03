@@ -64,9 +64,9 @@ public class CustomerIndividual extends AbstractPersistableCustom<Long> {
     @Column(name = "card_number", length = 100)
     private String cardNumber;
 
-    public CustomerIndividual(final Client client, final String salutation, final String maritalStatus,
-            final boolean isDependent, final boolean isPwd, final String countryOfBirth, final String nationality,
-            final String homeOwnership, final String cardNumber) {
+    public CustomerIndividual(final Client client, final String salutation, final String maritalStatus, final boolean isDependent,
+            final boolean isPwd, final String countryOfBirth, final String nationality, final String homeOwnership,
+            final String cardNumber) {
         this.client = client;
         this.salutation = salutation;
         this.maritalStatus = maritalStatus;
