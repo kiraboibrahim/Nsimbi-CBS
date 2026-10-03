@@ -26,7 +26,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -74,6 +73,7 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountRepositoryWrap
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountSubStatusEnum;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransactionRepository;
+import org.apache.fineract.portfolio.savings.domain.SavingsSmsAlertConfigRepository;
 import org.apache.fineract.portfolio.savings.exception.SavingsAccountNotFoundException;
 import org.apache.fineract.portfolio.savings.exception.SavingsAccountTransactionNotFoundException;
 import org.apache.fineract.portfolio.tax.data.TaxComponentData;
@@ -108,16 +108,27 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
 
     private final SavingsAccountRepositoryWrapper savingsAccountRepositoryWrapper;
     private final SavingsAccountTransactionRepository savingsAccountTransactionRepository;
+    private final SavingsSmsAlertConfigRepository savingsSmsAlertConfigRepository;
 
     public SavingsAccountReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate,
             final SavingsAccountAssembler savingAccountAssembler, PaginationHelper paginationHelper, ColumnValidator columnValidator,
             DatabaseSpecificSQLGenerator sqlGenerator, SavingsAccountRepositoryWrapper savingsAccountRepositoryWrapper,
             SavingsAccountTransactionRepository savingsAccountTransactionRepository) {
+        this(context, jdbcTemplate, savingAccountAssembler, paginationHelper, columnValidator, sqlGenerator,
+                savingsAccountRepositoryWrapper, savingsAccountTransactionRepository, null);
+    }
+
+    public SavingsAccountReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate,
+            final SavingsAccountAssembler savingAccountAssembler, PaginationHelper paginationHelper, ColumnValidator columnValidator,
+            DatabaseSpecificSQLGenerator sqlGenerator, SavingsAccountRepositoryWrapper savingsAccountRepositoryWrapper,
+            SavingsAccountTransactionRepository savingsAccountTransactionRepository,
+            SavingsSmsAlertConfigRepository savingsSmsAlertConfigRepository) {
         this.context = context;
         this.jdbcTemplate = jdbcTemplate;
         this.sqlGenerator = sqlGenerator;
         this.savingsAccountRepositoryWrapper = savingsAccountRepositoryWrapper;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
+        this.savingsSmsAlertConfigRepository = savingsSmsAlertConfigRepository;
         this.transactionTemplateMapper = new SavingsAccountTransactionTemplateMapper();
         this.transactionsMapper = new SavingsAccountTransactionsMapper();
         this.savingsAccountTransactionsForBatchMapper = new SavingsAccountTransactionsForBatchMapper();
@@ -172,25 +183,41 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
         sqlBuilder.append(" join m_office o on o.id = c.office_id");
         sqlBuilder.append(" where o.hierarchy like ?");
 
-        final Object[] objectArray = new Object[3];
-        objectArray[0] = hierarchySearchString;
-        int arrayPos = 1;
+        final List<Object> queryParams = new ArrayList<>();
+        queryParams.add(hierarchySearchString);
+
         if (searchParameters != null) {
 
             if (StringUtils.isNotBlank(searchParameters.getStatus())) {
-                sqlBuilder.append(" and sa.status_enum = ?");
-                objectArray[arrayPos] = Integer.parseInt(searchParameters.getStatus());
-                arrayPos = arrayPos + 1;
+                final String statusParam = searchParameters.getStatus().trim();
+                if ("all".equalsIgnoreCase(statusParam)) {
+                    // No status filter applied
+                } else if ("active".equalsIgnoreCase(statusParam)) {
+                    sqlBuilder.append(" and sa.status_enum = 300 and (sa.sub_status_enum is null or sa.sub_status_enum = 0)");
+                } else if ("inactive".equalsIgnoreCase(statusParam)) {
+                    sqlBuilder.append(" and (sa.sub_status_enum = 100 or sa.sub_status_enum = 200)");
+                } else if ("frozen".equalsIgnoreCase(statusParam)) {
+                    sqlBuilder.append(" and sa.sub_status_enum = 300");
+                } else if ("closed".equalsIgnoreCase(statusParam)) {
+                    sqlBuilder.append(" and sa.status_enum = 600");
+                } else {
+                    try {
+                        final int statusCode = Integer.parseInt(statusParam);
+                        sqlBuilder.append(" and sa.status_enum = ?");
+                        queryParams.add(statusCode);
+                    } catch (NumberFormatException nfe) {
+                        // ignore unparseable status
+                    }
+                }
             }
 
             if (StringUtils.isNotBlank(searchParameters.getExternalId())) {
                 sqlBuilder.append(" and sa.external_id = ?");
-                objectArray[arrayPos] = searchParameters.getExternalId();
-                arrayPos = arrayPos + 1;
+                queryParams.add(searchParameters.getExternalId());
             }
             if (searchParameters.getOfficeId() != null) {
                 sqlBuilder.append(" and c.office_id = ?");
-                objectArray[arrayPos++] = searchParameters.getOfficeId();
+                queryParams.add(searchParameters.getOfficeId());
             }
             if (searchParameters.hasOrderBy()) {
                 sqlBuilder.append(" order by ").append(searchParameters.getOrderBy());
@@ -211,8 +238,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                 }
             }
         }
-        final Object[] finalObjectArray = Arrays.copyOf(objectArray, arrayPos);
-        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), finalObjectArray, this.savingAccountMapper);
+        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), queryParams.toArray(), this.savingAccountMapper);
     }
 
     @Override
@@ -221,7 +247,13 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
         try {
             final String sql = "select " + this.savingAccountMapper.schema() + " where sa.id = ?";
 
-            return this.jdbcTemplate.queryForObject(sql, this.savingAccountMapper, new Object[] { accountId }); // NOSONAR
+            final SavingsAccountData savingsAccount = this.jdbcTemplate.queryForObject(sql, this.savingAccountMapper,
+                    new Object[] { accountId }); // NOSONAR
+            if (savingsAccount != null && this.savingsSmsAlertConfigRepository != null) {
+                this.savingsSmsAlertConfigRepository.findBySavingsAccountId(accountId)
+                        .ifPresent(config -> savingsAccount.setSmsAlertConfig(config.toData()));
+            }
+            return savingsAccount;
         } catch (final EmptyResultDataAccessException e) {
             throw new SavingsAccountNotFoundException(accountId, e);
         }
@@ -950,6 +982,10 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             final BigDecimal onHoldAmount = rs.getBigDecimal("onHoldAmount");
 
             BigDecimal availableBalance = accountBalance;
+            if (availableBalance != null && minRequiredBalance != null
+                    && (enforceMinRequiredBalance || minRequiredBalance.compareTo(BigDecimal.ZERO) > 0)) {
+                availableBalance = availableBalance.subtract(minRequiredBalance);
+            }
             if (availableBalance != null && onHoldFunds != null) {
                 availableBalance = availableBalance.subtract(onHoldFunds);
             }

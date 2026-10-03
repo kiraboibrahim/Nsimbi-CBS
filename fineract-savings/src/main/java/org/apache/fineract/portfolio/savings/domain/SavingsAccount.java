@@ -3431,6 +3431,14 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
             }
         }
 
+        if (this.sub_status != null && SavingsAccountSubStatusEnum.BLOCK.getValue().equals(this.sub_status)) {
+            baseDataValidator.reset().parameter(SavingsApiConstants.subStatusParamName).failWithCode("savings.account.already.blocked",
+                    "Savings account is already blocked or frozen");
+            if (!dataValidationErrors.isEmpty()) {
+                throw new PlatformApiDataValidationException(dataValidationErrors);
+            }
+        }
+
         this.sub_status = SavingsAccountSubStatusEnum.BLOCK.getValue();
         actualChanges.put(SavingsApiConstants.subStatusParamName, SavingsEnumerations.subStatus(this.sub_status));
 

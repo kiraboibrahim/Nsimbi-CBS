@@ -81,6 +81,8 @@ public interface SavingsAccountWritePlatformService {
 
     CommandProcessingResult modifyWithHoldTax(Long savingsAccountId, JsonCommand command);
 
+    CommandProcessingResult updateSmsAlertConfig(Long savingsAccountId, JsonCommand command);
+
     void setSubStatusInactive(Long savingsId);
 
     void setSubStatusDormant(Long savingsId);

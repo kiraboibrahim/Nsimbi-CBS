@@ -3489,6 +3489,102 @@ public class CommandWrapperBuilder {
         return this;
     }
 
+    public CommandWrapperBuilder updateSavingsAccountSmsAlertConfig(final Long accountId) {
+        this.actionName = "UPDATESMSALERTCONFIG";
+        this.entityName = "SAVINGSACCOUNT";
+        this.entityId = accountId;
+        this.href = "/savingsaccounts/" + accountId + "?command=updateSmsAlertConfig";
+        return this;
+    }
+
+    public CommandWrapperBuilder createFixedDepositBooking() {
+        this.actionName = "CREATE";
+        this.entityName = "FIXEDDEPOSIT";
+        this.entityId = null;
+        this.href = "/fixeddeposits";
+        return this;
+    }
+
+    public CommandWrapperBuilder approveFixedDepositBooking(final Long id) {
+        this.actionName = "APPROVE";
+        this.entityName = "FIXEDDEPOSIT";
+        this.entityId = id;
+        this.href = "/fixeddeposits/" + id + "?command=approve";
+        return this;
+    }
+
+    public CommandWrapperBuilder rejectFixedDepositBooking(final Long id) {
+        this.actionName = "REJECT";
+        this.entityName = "FIXEDDEPOSIT";
+        this.entityId = id;
+        this.href = "/fixeddeposits/" + id + "?command=reject";
+        return this;
+    }
+
+    public CommandWrapperBuilder terminateFixedDepositBooking(final Long id) {
+        this.actionName = "TERMINATE";
+        this.entityName = "FIXEDDEPOSIT";
+        this.entityId = id;
+        this.href = "/fixeddeposits/" + id + "?command=terminate";
+        return this;
+    }
+
+    public CommandWrapperBuilder createStandingOrder() {
+        this.actionName = "CREATE";
+        this.entityName = "STANDINGORDER";
+        this.entityId = null;
+        this.href = "/standingorders";
+        return this;
+    }
+
+    public CommandWrapperBuilder approveStandingOrder(final Long id) {
+        this.actionName = "APPROVE";
+        this.entityName = "STANDINGORDER";
+        this.entityId = id;
+        this.href = "/standingorders/" + id + "?command=approve";
+        return this;
+    }
+
+    public CommandWrapperBuilder rejectStandingOrder(final Long id) {
+        this.actionName = "REJECT";
+        this.entityName = "STANDINGORDER";
+        this.entityId = id;
+        this.href = "/standingorders/" + id + "?command=reject";
+        return this;
+    }
+
+    public CommandWrapperBuilder createDebitCardIssuance() {
+        this.actionName = "CREATE";
+        this.entityName = "DEBITCARDISSUANCE";
+        this.entityId = null;
+        this.href = "/debitcards";
+        return this;
+    }
+
+    public CommandWrapperBuilder approveDebitCardIssuance(final Long id) {
+        this.actionName = "APPROVE";
+        this.entityName = "DEBITCARDISSUANCE";
+        this.entityId = id;
+        this.href = "/debitcards/" + id + "?command=approve";
+        return this;
+    }
+
+    public CommandWrapperBuilder issueDebitCardIssuance(final Long id) {
+        this.actionName = "ISSUE";
+        this.entityName = "DEBITCARDISSUANCE";
+        this.entityId = id;
+        this.href = "/debitcards/" + id + "?command=issue";
+        return this;
+    }
+
+    public CommandWrapperBuilder rejectDebitCardIssuance(final Long id) {
+        this.actionName = "REJECT";
+        this.entityName = "DEBITCARDISSUANCE";
+        this.entityId = id;
+        this.href = "/debitcards/" + id + "?command=reject";
+        return this;
+    }
+
     public CommandWrapperBuilder createEntityDatatableChecks(final String json) {
         this.actionName = ACTION_CREATE;
         this.entityName = ENTITY_ENTITY_DATATABLE_CHECK;

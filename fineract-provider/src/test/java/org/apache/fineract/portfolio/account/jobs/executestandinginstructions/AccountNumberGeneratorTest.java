@@ -160,6 +160,40 @@ public class AccountNumberGeneratorTest {
     }
 
     @Test
+    public void testGenerateDeterministicSavingsAccountNumber_whenFormatIsNull() {
+        SavingsAccount savings = mock(SavingsAccount.class);
+        Client client = mock(Client.class);
+        Office office = mock(Office.class);
+
+        when(savings.getClient()).thenReturn(client);
+        when(savings.getId()).thenReturn(9L);
+        when(client.getId()).thenReturn(528L);
+        when(client.getOffice()).thenReturn(office);
+        when(office.getId()).thenReturn(35L);
+
+        String accountNumber = generator.generate(savings, null);
+        assertThat(accountNumber).isEqualTo("003500005281");
+        assertThat(accountNumber).hasSize(12);
+    }
+
+    @Test
+    public void testGenerateDeterministicSavingsAccountNumber_directMethodCall() {
+        SavingsAccount savings = mock(SavingsAccount.class);
+        Client client = mock(Client.class);
+        Office office = mock(Office.class);
+
+        when(savings.getClient()).thenReturn(client);
+        when(savings.getId()).thenReturn(10L);
+        when(client.getId()).thenReturn(528L);
+        when(client.getOffice()).thenReturn(office);
+        when(office.getId()).thenReturn(35L);
+
+        String accountNumber = generator.generateDeterministicSavingsAccountNumber(savings);
+        assertThat(accountNumber).isEqualTo("003500005282");
+        assertThat(accountNumber).hasSize(12);
+    }
+
+    @Test
     public void testGenerateShareAccountNumber() {
         ShareAccount share = mock(ShareAccount.class);
         ShareProduct product = mock(ShareProduct.class);

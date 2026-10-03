@@ -31,9 +31,8 @@ public class ClientApiCollectionConstants extends ClientApiConstants {
             activeParamName, activationDateParamName, staffIdParamName, submittedOnDateParamName, savingsProductIdParamName,
             dateOfBirthParamName, genderIdParamName, clientTypeIdParamName, clientClassificationIdParamName,
             clientNonPersonDetailsParamName, displaynameParamName, legalFormIdParamName, datatables, isStaffParamName,
-            customerTypeParamName, hasLoanLimitParamName, customerIndividualParamName, customerGroupParamName,
-            customerInstitutionParamName, customerJointParamName, nextOfKinParamName, employmentIncomeParamName,
-            externalBanksParamName));
+            customerTypeParamName, hasLoanLimitParamName, customerIndividualParamName, customerGroupParamName, customerInstitutionParamName,
+            customerJointParamName, nextOfKinParamName, employmentIncomeParamName, externalBanksParamName));
 
     protected static final Set<String> CLIENT_NON_PERSON_CREATE_REQUEST_DATA_PARAMETERS = new HashSet<>(
             Arrays.asList(familyMembers, address, localeParamName, dateFormatParamName, incorpNumberParamName, remarksParamName,
@@ -45,10 +44,9 @@ public class ClientApiCollectionConstants extends ClientApiConstants {
 
             lastnameParamName, fullnameParamName, activeParamName, activationDateParamName, staffIdParamName, savingsProductIdParamName,
             dateOfBirthParamName, genderIdParamName, clientTypeIdParamName, clientClassificationIdParamName, submittedOnDateParamName,
-            clientNonPersonDetailsParamName, displaynameParamName, legalFormIdParamName, isStaffParamName,
-            customerTypeParamName, hasLoanLimitParamName, customerIndividualParamName, customerGroupParamName,
-            customerInstitutionParamName, customerJointParamName, nextOfKinParamName, employmentIncomeParamName,
-            externalBanksParamName));
+            clientNonPersonDetailsParamName, displaynameParamName, legalFormIdParamName, isStaffParamName, customerTypeParamName,
+            hasLoanLimitParamName, customerIndividualParamName, customerGroupParamName, customerInstitutionParamName,
+            customerJointParamName, nextOfKinParamName, employmentIncomeParamName, externalBanksParamName));
 
     protected static final Set<String> CLIENT_NON_PERSON_UPDATE_REQUEST_DATA_PARAMETERS = new HashSet<>(
             Arrays.asList(localeParamName, dateFormatParamName, incorpNumberParamName, remarksParamName, incorpValidityTillParamName,
@@ -67,9 +65,8 @@ public class ClientApiCollectionConstants extends ClientApiConstants {
     protected static final Set<String> CLIENT_CLOSE_REQUEST_DATA_PARAMETERS = new HashSet<>(
             Arrays.asList(localeParamName, dateFormatParamName, closureDateParamName, closureReasonIdParamName));
 
-    protected static final Set<String> CLIENT_REJECT_DATA_PARAMETERS = new HashSet<>(
-            Arrays.asList(localeParamName, dateFormatParamName, rejectionDateParamName, rejectionReasonIdParamName,
-                    rejectionReasonParamName));
+    protected static final Set<String> CLIENT_REJECT_DATA_PARAMETERS = new HashSet<>(Arrays.asList(localeParamName, dateFormatParamName,
+            rejectionDateParamName, rejectionReasonIdParamName, rejectionReasonParamName));
 
     protected static final Set<String> CLIENT_WITHDRAW_DATA_PARAMETERS = new HashSet<>(
             Arrays.asList(localeParamName, dateFormatParamName, withdrawalDateParamName, withdrawalReasonIdParamName));

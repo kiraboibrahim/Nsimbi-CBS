@@ -23,10 +23,8 @@ import lombok.Getter;
 @Getter
 public enum CustomerType {
 
-    INDIVIDUAL(1, "customerType.individual", "Individual"),
-    GROUP(2, "customerType.group", "Group"),
-    JOINT(3, "customerType.joint", "Joint"),
-    INSTITUTION(4, "customerType.institution", "Institution");
+    INDIVIDUAL(1, "customerType.individual", "Individual"), GROUP(2, "customerType.group", "Group"), JOINT(3, "customerType.joint",
+            "Joint"), INSTITUTION(4, "customerType.institution", "Institution");
 
     private final Integer value;
     private final String code;

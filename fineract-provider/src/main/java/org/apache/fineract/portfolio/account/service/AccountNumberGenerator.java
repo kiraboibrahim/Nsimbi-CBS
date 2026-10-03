@@ -101,12 +101,28 @@ public class AccountNumberGenerator implements AccountNumberGeneratorService {
     }
 
     public String generate(SavingsAccount savingsAccount, AccountNumberFormat accountNumberFormat) {
+        if (accountNumberFormat == null) {
+            return generateDeterministicSavingsAccountNumber(savingsAccount);
+        }
         Map<String, String> propertyMap = new HashMap<>();
         propertyMap.put(ID, savingsAccount.getId().toString());
         propertyMap.put(OFFICE_NAME, savingsAccount.office().getName());
         propertyMap.put(SAVINGS_PRODUCT_SHORT_NAME, savingsAccount.savingsProduct().getShortName());
         propertyMap.put(ENTITY_TYPE, "savingsAccount");
         return generateAccountNumber(propertyMap, accountNumberFormat);
+    }
+
+    public String generateDeterministicSavingsAccountNumber(SavingsAccount savingsAccount) {
+        String memberNumber = "00010000001";
+        if (savingsAccount.getClient() != null) {
+            memberNumber = generateDeterministicMemberNumber(savingsAccount.getClient());
+        } else if (savingsAccount.office() != null && savingsAccount.office().getId() != null) {
+            final String branchPrefix = String.format("%04d", savingsAccount.office().getId() % 10000);
+            memberNumber = branchPrefix + "0000001";
+        }
+        final long accountId = savingsAccount.getId() != null ? savingsAccount.getId() : 1L;
+        final long suffix = (accountId % 9) + 1;
+        return memberNumber + suffix;
     }
 
     public String generate(ShareAccount shareaccount, AccountNumberFormat accountNumberFormat) {

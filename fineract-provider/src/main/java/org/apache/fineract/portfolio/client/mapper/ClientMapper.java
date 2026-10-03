@@ -36,12 +36,10 @@ import org.apache.fineract.portfolio.client.data.CustomerNextOfKinData;
 import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.domain.ClientEnumerations;
 import org.apache.fineract.portfolio.client.domain.CustomerEmploymentIncome;
-import org.apache.fineract.portfolio.client.domain.CustomerExternalBank;
 import org.apache.fineract.portfolio.client.domain.CustomerGroup;
 import org.apache.fineract.portfolio.client.domain.CustomerIndividual;
 import org.apache.fineract.portfolio.client.domain.CustomerInstitution;
 import org.apache.fineract.portfolio.client.domain.CustomerJoint;
-import org.apache.fineract.portfolio.client.domain.CustomerNextOfKin;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -193,9 +191,8 @@ public interface ClientMapper {
         if (ind == null) {
             return null;
         }
-        return new CustomerIndividualData(ind.getId(), client.getId(), ind.getSalutation(), ind.getMaritalStatus(),
-                ind.isDependent(), ind.isPwd(), ind.getCountryOfBirth(), ind.getNationality(), ind.getHomeOwnership(),
-                ind.getCardNumber());
+        return new CustomerIndividualData(ind.getId(), client.getId(), ind.getSalutation(), ind.getMaritalStatus(), ind.isDependent(),
+                ind.isPwd(), ind.getCountryOfBirth(), ind.getNationality(), ind.getHomeOwnership(), ind.getCardNumber());
     }
 
     @Named("mapCustomerGroup")
@@ -232,9 +229,9 @@ public interface ClientMapper {
         if (client.getNextOfKin() == null || client.getNextOfKin().isEmpty()) {
             return Collections.emptyList();
         }
-        return client.getNextOfKin().stream().map(nok -> new CustomerNextOfKinData(nok.getId(), client.getId(),
-                nok.getFirstName(), nok.getSecondName(), nok.getPhone(), nok.getPhysicalAddress(),
-                nok.getRelationship(), nok.getAllocationPercentage())).toList();
+        return client.getNextOfKin().stream().map(nok -> new CustomerNextOfKinData(nok.getId(), client.getId(), nok.getFirstName(),
+                nok.getSecondName(), nok.getPhone(), nok.getPhysicalAddress(), nok.getRelationship(), nok.getAllocationPercentage()))
+                .toList();
     }
 
     @Named("mapEmploymentIncome")
@@ -252,8 +249,8 @@ public interface ClientMapper {
         if (client.getExternalBanks() == null || client.getExternalBanks().isEmpty()) {
             return Collections.emptyList();
         }
-        return client.getExternalBanks().stream().map(bank -> new CustomerExternalBankData(bank.getId(), client.getId(),
-                bank.getBankName(), bank.getBranchName(), bank.getAccountNumber(), bank.getAccountName())).toList();
+        return client.getExternalBanks().stream().map(bank -> new CustomerExternalBankData(bank.getId(), client.getId(), bank.getBankName(),
+                bank.getBranchName(), bank.getAccountNumber(), bank.getAccountName())).toList();
     }
 
 }
