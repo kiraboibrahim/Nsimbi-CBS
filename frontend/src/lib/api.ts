@@ -2,6 +2,19 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
 import { ApiError } from '@/types/api';
 
+interface FineractErrorResponse {
+  defaultUserMessage?: string;
+  message?: string;
+  userMessageGlobalisationCode?: string;
+  developerMessage?: string;
+  errors?: Array<{
+    parameterName?: string;
+    defaultUserMessage?: string;
+    developerMessage?: string;
+    userMessageGlobalisationCode?: string;
+  }>;
+}
+
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/fineract-provider/api/v1';
 
@@ -38,7 +51,7 @@ export function toApiError(error: unknown): ApiError {
     });
   }
 
-  const axiosErr = error as AxiosError<any>;
+  const axiosErr = error as AxiosError<FineractErrorResponse | string>;
 
   if (!axiosErr.response) {
     return new ApiError({
@@ -50,7 +63,8 @@ export function toApiError(error: unknown): ApiError {
   }
 
   const status = axiosErr.response.status;
-  const data = axiosErr.response.data;
+  const responseData = axiosErr.response.data;
+  const data = typeof responseData === 'object' && responseData !== null ? responseData : undefined;
 
   const fieldErrors: Record<string, string> = {};
   let defaultMessage = data?.defaultUserMessage || data?.message;
@@ -58,8 +72,9 @@ export function toApiError(error: unknown): ApiError {
 
   if (Array.isArray(data?.errors) && data.errors.length > 0) {
     for (const err of data.errors) {
-      if (err.parameterName && (err.defaultUserMessage || err.developerMessage)) {
-        fieldErrors[err.parameterName] = err.defaultUserMessage || err.developerMessage;
+      const fieldMessage = err.defaultUserMessage || err.developerMessage;
+      if (err.parameterName && fieldMessage) {
+        fieldErrors[err.parameterName] = fieldMessage;
       }
     }
     const first = data.errors[0];
@@ -67,8 +82,8 @@ export function toApiError(error: unknown): ApiError {
     code = code || first.userMessageGlobalisationCode;
   }
 
-  if (typeof data === 'string') {
-    defaultMessage = data;
+  if (typeof responseData === 'string') {
+    defaultMessage = responseData;
   }
 
   return new ApiError({
@@ -121,7 +136,7 @@ apiClient.interceptors.response.use(
     const status = apiError.status;
     const url: string = error.config?.url || '';
 
-    if ((status === 401 || status === 403) && typeof window !== 'undefined') {
+    if (status === 401 && typeof window !== 'undefined') {
       if (!url.includes('/authentication') && !url.includes('/twofactor')) {
         localStorage.removeItem('nsimbi_cbs_auth');
         localStorage.removeItem('nsimbi_cbs_user');
