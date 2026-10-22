@@ -21,7 +21,8 @@ package org.apache.fineract.portfolio.loanaccount.handler;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.fineract.commands.annotation.CommandType;
-import org.apache.fineract.commands.handler.NewCommandSourceHandler;
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
+import org.apache.fineract.commands.handler.LoanCommandHandler;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.portfolio.loanaccount.service.LoanWritePlatformService;
@@ -31,15 +32,20 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @CommandType(entity = "GLIMLOAN", action = "DISBURSE")
-public class GlimLoanApplicationDisburseCommandHandler implements NewCommandSourceHandler {
+public class GlimLoanApplicationDisburseCommandHandler implements LoanCommandHandler {
 
     private final LoanWritePlatformService writePlatformService;
 
     @Transactional
     @Override
     public CommandProcessingResult processCommand(final JsonCommand command) {
+        throw LoanCommandExecutionContext.untrustedOrigin();
+    }
 
-        return this.writePlatformService.disburseGLIMLoan(command.entityId(), command);
+    @Transactional
+    @Override
+    public CommandProcessingResult processLoanCommand(final JsonCommand command, final LoanCommandExecutionContext context) {
+        return this.writePlatformService.disburseGLIMLoan(command.entityId(), command, context);
     }
 
 }

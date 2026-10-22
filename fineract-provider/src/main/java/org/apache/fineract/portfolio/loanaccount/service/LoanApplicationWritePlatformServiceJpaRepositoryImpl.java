@@ -41,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
@@ -57,6 +58,7 @@ import org.apache.fineract.infrastructure.event.business.domain.loan.LoanUndoApp
 import org.apache.fineract.infrastructure.event.business.domain.loan.LoanWithdrawnByApplicantBusinessEvent;
 import org.apache.fineract.infrastructure.event.business.service.BusinessEventNotifierService;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.fineract.nsimbi.userroles.domain.MonetaryAuthorityType;
 import org.apache.fineract.portfolio.account.domain.AccountAssociationType;
 import org.apache.fineract.portfolio.account.domain.AccountAssociations;
 import org.apache.fineract.portfolio.account.domain.AccountAssociationsRepository;
@@ -128,6 +130,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     private final LoanLifecycleStateMachine loanLifecycleStateMachine;
     private final LoanAccrualsProcessingService loanAccrualsProcessingService;
     private final LoanDownPaymentTransactionValidator loanDownPaymentTransactionValidator;
+    private final LoanMonetaryAuthorityService loanMonetaryAuthorityService;
     private final LoanScheduleService loanScheduleService;
     private final LoanOriginatorLinkingService loanOriginatorLinkingService;
 
@@ -522,6 +525,13 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     @Transactional
     @Override
     public CommandProcessingResult approveGLIMLoanAppication(final Long loanId, final JsonCommand command) {
+        return approveGLIMLoanAppication(loanId, command, new LoanCommandExecutionContext(getAppUserIfPresent()));
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult approveGLIMLoanAppication(final Long loanId, final JsonCommand command,
+            final LoanCommandExecutionContext executionContext) {
         GroupLoanIndividualMonitoringAccount parentLoan = glimRepository.findById(loanId).orElseThrow();
         JsonArray approvalFormData = command.arrayOfParameterNamed("approvalFormData");
 
@@ -544,7 +554,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
             childCommand = JsonCommand.fromExistingCommand(command, approvals);
 
-            result = approveApplication(childLoanId[j++], childCommand);
+            result = approveApplication(childLoanId[j++], childCommand, executionContext);
 
             if (result.getLoanId() != null) {
                 count++;
@@ -566,8 +576,20 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     @Transactional
     @Override
     public CommandProcessingResult approveApplication(final Long loanId, final JsonCommand command) {
+        return approveApplication(loanId, command, new LoanCommandExecutionContext(getAppUserIfPresent()));
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult approveApplication(final Long loanId, final JsonCommand command,
+            final LoanCommandExecutionContext executionContext) {
         final AppUser currentUser = getAppUserIfPresent();
         loanApplicationValidator.validateApproval(command, loanId);
+        Loan authorityLoan = loanAssembler.assembleFrom(loanId, false);
+        loanMonetaryAuthorityService.require(executionContext, MonetaryAuthorityType.LOAN_APPROVAL, authorityLoan,
+                command.bigDecimalValueOfParameterNamed(LoanApiConstants.approvedLoanAmountParameterName) == null
+                        ? authorityLoan.getApprovedPrincipal()
+                        : command.bigDecimalValueOfParameterNamed(LoanApiConstants.approvedLoanAmountParameterName));
 
         Pair<Loan, Map<String, Object>> loanAndChanges = loanScheduleAssembler.assembleLoanApproval(currentUser, command, loanId);
         final Loan loan = loanAndChanges.getLeft();

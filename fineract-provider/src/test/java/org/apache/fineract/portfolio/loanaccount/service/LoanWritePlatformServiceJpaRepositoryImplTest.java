@@ -111,6 +111,9 @@ import org.springframework.context.ApplicationContext;
 public class LoanWritePlatformServiceJpaRepositoryImplTest {
 
     @Mock
+    private LoanMonetaryAuthorityService loanMonetaryAuthorityService;
+
+    @Mock
     private LoanAssembler loanAssembler;
 
     @Mock

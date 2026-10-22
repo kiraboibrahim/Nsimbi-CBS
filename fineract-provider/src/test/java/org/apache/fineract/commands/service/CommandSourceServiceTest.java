@@ -27,11 +27,14 @@ import org.apache.fineract.batch.exception.ErrorInfo;
 import org.apache.fineract.commands.domain.CommandSource;
 import org.apache.fineract.commands.domain.CommandSourceRepository;
 import org.apache.fineract.commands.domain.CommandWrapper;
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
+import org.apache.fineract.commands.handler.LoanCommandHandler;
 import org.apache.fineract.infrastructure.codes.exception.CodeNotFoundException;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
 import org.apache.fineract.infrastructure.core.exception.ErrorHandler;
+import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.junit.jupiter.api.AfterEach;
@@ -111,4 +114,27 @@ public class CommandSourceServiceTest {
         Assertions.assertEquals(1001, result.getErrorCode());
         Assertions.assertTrue(result.getMessage().contains("Code with name `foo` does not exist"));
     }
+
+    @Test
+    public void loanCheckerExecutionRetainsOriginalMakerAndDoesNotFallBackToLegacyHandler() {
+        AppUser maker = Mockito.mock(AppUser.class);
+        AppUser checker = Mockito.mock(AppUser.class);
+        CommandSource source = Mockito.mock(CommandSource.class);
+        Mockito.when(source.getActionName()).thenReturn("APPROVE");
+        Mockito.when(source.getEntityName()).thenReturn("LOAN");
+        Mockito.when(source.getMaker()).thenReturn(maker);
+        LoanCommandHandler handler = Mockito.mock(LoanCommandHandler.class);
+        JsonCommand command = JsonCommand.from("{}");
+        Mockito.when(handler.processLoanCommand(Mockito.eq(command), any(LoanCommandExecutionContext.class))).thenAnswer(invocation -> {
+            LoanCommandExecutionContext context = invocation.getArgument(1);
+            Assertions.assertSame(maker, context.requireMaker());
+            throw new GeneralPlatformDomainRuleException("denied", "Maker authority denied");
+        });
+
+        Assertions.assertThrows(GeneralPlatformDomainRuleException.class,
+                () -> underTest.processCommandAndSaveResult(handler, command, source, checker, true, (s, r) -> {}));
+        Mockito.verify(handler, Mockito.never()).processCommand(any());
+        Mockito.verifyNoInteractions(commandSourceRepository);
+    }
+
 }

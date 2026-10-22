@@ -26,6 +26,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
@@ -62,8 +63,15 @@ public class CollectionSheetWritePlatformServiceJpaRepositoryImpl implements Col
 
     @Override
     public CommandProcessingResult updateCollectionSheet(final JsonCommand command) {
+        return updateCollectionSheet(command, null);
+    }
+
+    @Override
+    public CommandProcessingResult updateCollectionSheet(final JsonCommand command, LoanCommandExecutionContext context) {
 
         this.transactionDataValidator.validateTransaction(command);
+        this.loanWritePlatformService.validateBulkDisbursementAuthority(command,
+                bulkDisbursalCommandFromApiJsonDeserializer.commandFromApiJson(command.json()), context);
 
         final Map<String, Object> changes = new HashMap<>();
         changes.put("locale", command.locale());
@@ -77,7 +85,7 @@ public class CollectionSheetWritePlatformServiceJpaRepositoryImpl implements Col
         final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
         changes.putAll(updateBulkRepayments(command, paymentDetail));
 
-        changes.putAll(updateBulkDisbursals(command));
+        changes.putAll(updateBulkDisbursals(command, context));
 
         changes.putAll(updateBulkMandatorySavingsDuePayments(command, paymentDetail));
 
@@ -95,8 +103,15 @@ public class CollectionSheetWritePlatformServiceJpaRepositoryImpl implements Col
 
     @Override
     public CommandProcessingResult saveIndividualCollectionSheet(final JsonCommand command) {
+        return saveIndividualCollectionSheet(command, null);
+    }
+
+    @Override
+    public CommandProcessingResult saveIndividualCollectionSheet(final JsonCommand command, LoanCommandExecutionContext context) {
 
         this.transactionDataValidator.validateIndividualCollectionSheet(command);
+        this.loanWritePlatformService.validateBulkDisbursementAuthority(command,
+                bulkDisbursalCommandFromApiJsonDeserializer.commandFromApiJson(command.json()), context);
 
         final Map<String, Object> changes = new HashMap<>();
         changes.put("locale", command.locale());
@@ -111,7 +126,7 @@ public class CollectionSheetWritePlatformServiceJpaRepositoryImpl implements Col
 
         changes.putAll(updateBulkRepayments(command, paymentDetail));
 
-        changes.putAll(updateBulkDisbursals(command));
+        changes.putAll(updateBulkDisbursals(command, context));
 
         changes.putAll(updateBulkMandatorySavingsDuePayments(command, paymentDetail));
 
@@ -132,11 +147,11 @@ public class CollectionSheetWritePlatformServiceJpaRepositoryImpl implements Col
         return changes;
     }
 
-    private Map<String, Object> updateBulkDisbursals(final JsonCommand command) {
+    private Map<String, Object> updateBulkDisbursals(final JsonCommand command, LoanCommandExecutionContext context) {
         final Map<String, Object> changes = new HashMap<>();
         final CollectionSheetBulkDisbursalCommand bulkDisbursalCommand = this.bulkDisbursalCommandFromApiJsonDeserializer
                 .commandFromApiJson(command.json());
-        changes.putAll(this.loanWritePlatformService.bulkLoanDisbursal(command, bulkDisbursalCommand, false));
+        changes.putAll(this.loanWritePlatformService.bulkLoanDisbursal(command, bulkDisbursalCommand, false, context));
         return changes;
     }
 

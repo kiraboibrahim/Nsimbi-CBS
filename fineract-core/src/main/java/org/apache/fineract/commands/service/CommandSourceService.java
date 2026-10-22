@@ -30,12 +30,14 @@ import org.apache.fineract.batch.exception.ErrorInfo;
 import org.apache.fineract.commands.domain.CommandSource;
 import org.apache.fineract.commands.domain.CommandSourceRepository;
 import org.apache.fineract.commands.domain.CommandWrapper;
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
 import org.apache.fineract.commands.domain.SavingsDepositExecutionContext;
 import org.apache.fineract.commands.domain.SavingsTransactionCommandEnvelope;
 import org.apache.fineract.commands.domain.SavingsTransactionExecutionContext;
 import org.apache.fineract.commands.domain.SavingsTransactionKind;
 import org.apache.fineract.commands.exception.CommandNotFoundException;
 import org.apache.fineract.commands.exception.RollbackTransactionNotApprovedException;
+import org.apache.fineract.commands.handler.LoanCommandHandler;
 import org.apache.fineract.commands.handler.NewCommandSourceHandler;
 import org.apache.fineract.commands.handler.SavingsDepositCommandHandler;
 import org.apache.fineract.commands.handler.SavingsTransactionCommandHandler;
@@ -153,6 +155,8 @@ public class CommandSourceService {
             } else {
                 throw SavingsTransactionCommandEnvelope.untrustedOrigin(kind);
             }
+        } else if (handler instanceof LoanCommandHandler loanHandler) {
+            result = loanHandler.processLoanCommand(command, new LoanCommandExecutionContext(commandSource.getMaker()));
         } else {
             result = handler.processCommand(command);
         }
