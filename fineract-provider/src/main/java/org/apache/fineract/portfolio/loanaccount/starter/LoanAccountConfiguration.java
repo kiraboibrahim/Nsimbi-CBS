@@ -149,6 +149,7 @@ import org.apache.fineract.portfolio.loanaccount.service.LoanDownPaymentHandlerS
 import org.apache.fineract.portfolio.loanaccount.service.LoanDownPaymentHandlerServiceImpl;
 import org.apache.fineract.portfolio.loanaccount.service.LoanJournalEntryPoster;
 import org.apache.fineract.portfolio.loanaccount.service.LoanMaximumAmountCalculator;
+import org.apache.fineract.portfolio.loanaccount.service.LoanMonetaryAuthorityService;
 import org.apache.fineract.portfolio.loanaccount.service.LoanOfficerService;
 import org.apache.fineract.portfolio.loanaccount.service.LoanOriginatorLinkingService;
 import org.apache.fineract.portfolio.loanaccount.service.LoanReadPlatformService;
@@ -232,14 +233,15 @@ public class LoanAccountConfiguration {
             EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService, GLIMAccountInfoRepository glimRepository,
             LoanRepository loanRepository, GSIMReadPlatformService gsimReadPlatformService,
             LoanLifecycleStateMachine loanLifecycleStateMachine, LoanAccrualsProcessingService loanAccrualsProcessingService,
-            LoanDownPaymentTransactionValidator loanDownPaymentTransactionValidator, LoanScheduleService loanScheduleService,
+            LoanDownPaymentTransactionValidator loanDownPaymentTransactionValidator,
+            LoanMonetaryAuthorityService loanMonetaryAuthorityService, LoanScheduleService loanScheduleService,
             LoanOriginatorLinkingService loanOriginatorLinkingService) {
         return new LoanApplicationWritePlatformServiceJpaRepositoryImpl(context, loanApplicationTransitionValidator,
                 loanApplicationValidator, loanRepositoryWrapper, noteRepository, loanAssembler, calendarRepository,
                 calendarInstanceRepository, savingsAccountRepository, accountAssociationsRepository, businessEventNotifierService,
                 loanScheduleAssembler, loanUtilService, calendarReadPlatformService, entityDatatableChecksWritePlatformService,
                 glimRepository, loanRepository, gsimReadPlatformService, loanLifecycleStateMachine, loanAccrualsProcessingService,
-                loanDownPaymentTransactionValidator, loanScheduleService, loanOriginatorLinkingService);
+                loanDownPaymentTransactionValidator, loanMonetaryAuthorityService, loanScheduleService, loanOriginatorLinkingService);
     }
 
     @Bean
@@ -446,7 +448,8 @@ public class LoanAccountConfiguration {
             ReprocessLoanTransactionsService reprocessLoanTransactionsService, LoanAccountService loanAccountService,
             LoanJournalEntryPoster journalEntryPoster, LoanAdjustmentService loanAdjustmentService, LoanMapper loanMapper,
             LoanTransactionProcessingService loanTransactionProcessingService, final LoanBalanceService loanBalanceService,
-            LoanTransactionService loanTransactionService, LoanOriginatorLinkingService loanOriginatorLinkingService) {
+            LoanTransactionService loanTransactionService, LoanOriginatorLinkingService loanOriginatorLinkingService,
+            LoanMonetaryAuthorityService loanMonetaryAuthorityService) {
         return new LoanWritePlatformServiceJpaRepositoryImpl(context, loanTransactionValidator, loanUpdateCommandFromApiJsonDeserializer,
                 loanRepositoryWrapper, loanAccountDomainService, noteRepository, loanTransactionRepository,
                 loanTransactionRelationRepository, loanAssembler, calendarInstanceRepository, paymentDetailWritePlatformService,
@@ -461,7 +464,7 @@ public class LoanAccountConfiguration {
                 loanAccrualsProcessingService, loanOfficerValidator, loanDownPaymentTransactionValidator, loanDisbursementService,
                 loanScheduleService, loanChargeValidator, loanOfficerService, reprocessLoanTransactionsService, loanAccountService,
                 journalEntryPoster, loanAdjustmentService, loanMapper, loanTransactionProcessingService, loanBalanceService,
-                loanTransactionService, loanOriginatorLinkingService);
+                loanTransactionService, loanOriginatorLinkingService, loanMonetaryAuthorityService);
     }
 
     @Bean

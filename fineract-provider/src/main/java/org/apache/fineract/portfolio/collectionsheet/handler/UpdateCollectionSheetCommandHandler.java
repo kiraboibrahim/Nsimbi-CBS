@@ -20,7 +20,8 @@ package org.apache.fineract.portfolio.collectionsheet.handler;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.fineract.commands.annotation.CommandType;
-import org.apache.fineract.commands.handler.NewCommandSourceHandler;
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
+import org.apache.fineract.commands.handler.LoanCommandHandler;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.portfolio.collectionsheet.service.CollectionSheetWritePlatformService;
@@ -30,15 +31,21 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @CommandType(entity = "COLLECTIONSHEET", action = "UPDATE")
 @RequiredArgsConstructor
-public class UpdateCollectionSheetCommandHandler implements NewCommandSourceHandler {
+public class UpdateCollectionSheetCommandHandler implements LoanCommandHandler {
 
     private final CollectionSheetWritePlatformService collectionSheetWritePlatformService;
 
     @Transactional
     @Override
     public CommandProcessingResult processCommand(final JsonCommand command) {
+        throw LoanCommandExecutionContext.untrustedOrigin();
+    }
 
-        return this.collectionSheetWritePlatformService.updateCollectionSheet(command);
+    @Transactional
+    @Override
+    public CommandProcessingResult processLoanCommand(final JsonCommand command, LoanCommandExecutionContext context) {
+
+        return this.collectionSheetWritePlatformService.updateCollectionSheet(command, context);
     }
 
 }

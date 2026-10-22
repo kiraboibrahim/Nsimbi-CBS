@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.portfolio.loanaccount.service;
 
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 
@@ -25,5 +26,9 @@ public interface LoanApprovedAmountWritePlatformService {
 
     CommandProcessingResult modifyLoanApprovedAmount(Long loanId, JsonCommand command);
 
+    CommandProcessingResult modifyLoanApprovedAmount(Long loanId, JsonCommand command, LoanCommandExecutionContext context);
+
     CommandProcessingResult modifyLoanAvailableDisbursementAmount(Long loanId, JsonCommand command);
+
+    CommandProcessingResult modifyLoanAvailableDisbursementAmount(Long loanId, JsonCommand command, LoanCommandExecutionContext context);
 }

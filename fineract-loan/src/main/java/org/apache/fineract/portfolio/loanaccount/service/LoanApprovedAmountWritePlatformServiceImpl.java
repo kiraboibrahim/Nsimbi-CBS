@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
@@ -43,12 +44,18 @@ public class LoanApprovedAmountWritePlatformServiceImpl implements LoanApprovedA
     private static final String ERROR_CODE_MUST_BE_DIFFERENT_FROM_CURRENT_APPROVED_AMOUNT = "must.be.different.from.current.approved.amount";
 
     private final LoanAssembler loanAssembler;
+    private final LoanApprovalAuthority loanApprovalAuthority;
     private final LoanApprovedAmountValidator loanApprovedAmountValidator;
     private final LoanApprovedAmountHistoryRepository loanApprovedAmountHistoryRepository;
     private final BusinessEventNotifierService businessEventNotifierService;
 
     @Override
-    public CommandProcessingResult modifyLoanApprovedAmount(final Long loanId, final JsonCommand command) {
+    public CommandProcessingResult modifyLoanApprovedAmount(Long loanId, JsonCommand command) {
+        throw LoanCommandExecutionContext.untrustedOrigin();
+    }
+
+    @Override
+    public CommandProcessingResult modifyLoanApprovedAmount(Long loanId, JsonCommand command, LoanCommandExecutionContext context) {
         // API rule validations
         this.loanApprovedAmountValidator.validateLoanApprovedAmountModification(command);
 
@@ -62,6 +69,8 @@ public class LoanApprovedAmountWritePlatformServiceImpl implements LoanApprovedA
         BigDecimal newApprovedAmount = command.bigDecimalValueOfParameterNamed(LoanApiConstants.amountParameterName);
 
         validateNewApprovedAmountDiffersFromCurrent(loan, newApprovedAmount);
+
+        loanApprovalAuthority.requireApproval(context, loan, newApprovedAmount);
 
         LoanApprovedAmountHistory loanApprovedAmountHistory = new LoanApprovedAmountHistory(loan.getId(), newApprovedAmount,
                 loan.getApprovedPrincipal());
@@ -83,6 +92,12 @@ public class LoanApprovedAmountWritePlatformServiceImpl implements LoanApprovedA
 
     @Override
     public CommandProcessingResult modifyLoanAvailableDisbursementAmount(Long loanId, JsonCommand command) {
+        throw LoanCommandExecutionContext.untrustedOrigin();
+    }
+
+    @Override
+    public CommandProcessingResult modifyLoanAvailableDisbursementAmount(Long loanId, JsonCommand command,
+            LoanCommandExecutionContext context) {
         // API rule validations
         this.loanApprovedAmountValidator.validateLoanAvailableDisbursementAmountModification(command);
 
@@ -104,6 +119,8 @@ public class LoanApprovedAmountWritePlatformServiceImpl implements LoanApprovedA
         BigDecimal newApprovedAmount = loan.getSummary().getTotalPrincipal().add(expectedDisbursementAmount)
                 .add(newAvailableDisbursementAmount);
         changes.put("newApprovedAmount", newApprovedAmount);
+
+        loanApprovalAuthority.requireApproval(context, loan, newApprovedAmount);
 
         LoanApprovedAmountHistory loanApprovedAmountHistory = new LoanApprovedAmountHistory(loan.getId(), newApprovedAmount,
                 loan.getApprovedPrincipal());

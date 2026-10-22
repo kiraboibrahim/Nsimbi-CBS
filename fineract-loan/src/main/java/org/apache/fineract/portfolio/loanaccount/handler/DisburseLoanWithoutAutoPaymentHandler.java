@@ -20,7 +20,8 @@ package org.apache.fineract.portfolio.loanaccount.handler;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.fineract.commands.annotation.CommandType;
-import org.apache.fineract.commands.handler.NewCommandSourceHandler;
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
+import org.apache.fineract.commands.handler.LoanCommandHandler;
 import org.apache.fineract.infrastructure.DataIntegrityErrorHandler;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
@@ -32,15 +33,20 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @CommandType(entity = "LOAN", action = "DISBURSEWITHOUTAUTODOWNPAYMENT")
-public class DisburseLoanWithoutAutoPaymentHandler implements NewCommandSourceHandler {
+public class DisburseLoanWithoutAutoPaymentHandler implements LoanCommandHandler {
 
     private final LoanWritePlatformService writePlatformService;
     private final DataIntegrityErrorHandler dataIntegrityErrorHandler;
 
     @Override
     public CommandProcessingResult processCommand(JsonCommand command) {
+        throw LoanCommandExecutionContext.untrustedOrigin();
+    }
+
+    @Override
+    public CommandProcessingResult processLoanCommand(JsonCommand command, LoanCommandExecutionContext context) {
         try {
-            return writePlatformService.disburseLoan(command.entityId(), command, false, true);
+            return writePlatformService.disburseLoan(command.entityId(), command, false, true, context);
         } catch (final JpaSystemException | DataIntegrityViolationException dve) {
             dataIntegrityErrorHandler.handleDataIntegrityIssues(command, dve.getMostSpecificCause(), dve, "loan.disbursement",
                     "Disbursement");

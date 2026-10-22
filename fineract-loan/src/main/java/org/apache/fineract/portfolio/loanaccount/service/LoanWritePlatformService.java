@@ -21,6 +21,7 @@ package org.apache.fineract.portfolio.loanaccount.service;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Map;
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.organisation.office.domain.Office;
@@ -38,10 +39,22 @@ public interface LoanWritePlatformService {
 
     CommandProcessingResult disburseLoan(Long loanId, JsonCommand command, Boolean isAccountTransfer);
 
+    CommandProcessingResult disburseLoan(Long loanId, JsonCommand command, Boolean isAccountTransfer,
+            LoanCommandExecutionContext executionContext);
+
     CommandProcessingResult disburseLoan(Long loanId, JsonCommand command, Boolean isAccountTransfer, Boolean isWithoutAutoPayment);
+
+    CommandProcessingResult disburseLoan(Long loanId, JsonCommand command, Boolean isAccountTransfer, Boolean isWithoutAutoPayment,
+            LoanCommandExecutionContext executionContext);
 
     Map<String, Object> bulkLoanDisbursal(JsonCommand command, CollectionSheetBulkDisbursalCommand bulkDisbursalCommand,
             Boolean isAccountTransfer);
+
+    Map<String, Object> bulkLoanDisbursal(JsonCommand command, CollectionSheetBulkDisbursalCommand bulkDisbursalCommand,
+            Boolean isAccountTransfer, LoanCommandExecutionContext executionContext);
+
+    void validateBulkDisbursementAuthority(JsonCommand command, CollectionSheetBulkDisbursalCommand bulkDisbursalCommand,
+            LoanCommandExecutionContext executionContext);
 
     CommandProcessingResult undoLoanDisbursal(Long loanId, JsonCommand command);
 
@@ -108,6 +121,8 @@ public interface LoanWritePlatformService {
     CommandProcessingResult forecloseLoan(Long loanId, JsonCommand command);
 
     CommandProcessingResult disburseGLIMLoan(Long loanId, JsonCommand command);
+
+    CommandProcessingResult disburseGLIMLoan(Long loanId, JsonCommand command, LoanCommandExecutionContext executionContext);
 
     CommandProcessingResult undoGLIMLoanDisbursal(Long loanId, JsonCommand command);
 

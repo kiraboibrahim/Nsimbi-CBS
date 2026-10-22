@@ -54,6 +54,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.fineract.cob.domain.LoanAccountLock;
 import org.apache.fineract.cob.exceptions.AccountLockCannotBeOverruledException;
 import org.apache.fineract.cob.service.AccountLockService;
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.codes.domain.CodeValueRepositoryWrapper;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -107,6 +108,7 @@ import org.apache.fineract.infrastructure.event.business.domain.loan.transaction
 import org.apache.fineract.infrastructure.event.business.domain.loan.transaction.LoanWrittenOffPreBusinessEvent;
 import org.apache.fineract.infrastructure.event.business.service.BusinessEventNotifierService;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.fineract.nsimbi.userroles.domain.MonetaryAuthorityType;
 import org.apache.fineract.organisation.holiday.domain.Holiday;
 import org.apache.fineract.organisation.holiday.domain.HolidayRepositoryWrapper;
 import org.apache.fineract.organisation.holiday.service.HolidayUtil;
@@ -291,17 +293,28 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     private final LoanBalanceService loanBalanceService;
     private final LoanTransactionService loanTransactionService;
     private final LoanOriginatorLinkingService loanOriginatorLinkingService;
+    private final LoanMonetaryAuthorityService loanMonetaryAuthorityService;
 
     @Transactional
     @Override
     public CommandProcessingResult disburseGLIMLoan(final Long loanId, final JsonCommand command) {
+        return disburseGLIMLoan(loanId, command, new LoanCommandExecutionContext(getAppUserIfPresent()));
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult disburseGLIMLoan(final Long loanId, final JsonCommand command,
+            final LoanCommandExecutionContext executionContext) {
         final Long parentLoanId = loanId;
         GroupLoanIndividualMonitoringAccount parentLoan = glimRepository.findById(parentLoanId).orElseThrow();
         List<Loan> childLoans = this.loanRepository.findByGlimId(loanId);
         CommandProcessingResult result = null;
         int count = 0;
         for (Loan loan : childLoans) {
-            result = disburseLoan(loan.getId(), command, false);
+            loanMonetaryAuthorityService.requireDisbursement(executionContext, loan, command, true);
+        }
+        for (Loan loan : childLoans) {
+            result = disburseLoan(loan.getId(), command, false, executionContext);
             if (result.getLoanId() != null) {
                 count++;
                 // if all the child loans are approved, mark the parent loan as
@@ -315,18 +328,34 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         return result;
     }
 
+    @Transactional
     @Override
     public CommandProcessingResult disburseLoan(Long loanId, JsonCommand command, Boolean isAccountTransfer) {
-        return disburseLoan(loanId, command, isAccountTransfer, false);
+        return disburseLoan(loanId, command, isAccountTransfer, false, new LoanCommandExecutionContext(getAppUserIfPresent()));
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult disburseLoan(Long loanId, JsonCommand command, Boolean isAccountTransfer,
+            LoanCommandExecutionContext executionContext) {
+        return disburseLoan(loanId, command, isAccountTransfer, false, executionContext);
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult disburseLoan(Long loanId, JsonCommand command, Boolean isAccountTransfer, Boolean isWithoutAutoPayment) {
+        return disburseLoan(loanId, command, isAccountTransfer, isWithoutAutoPayment,
+                new LoanCommandExecutionContext(getAppUserIfPresent()));
     }
 
     @Transactional
     @Override
     public CommandProcessingResult disburseLoan(final Long loanId, final JsonCommand command, Boolean isAccountTransfer,
-            Boolean isWithoutAutoPayment) {
+            Boolean isWithoutAutoPayment, final LoanCommandExecutionContext executionContext) {
         loanTransactionValidator.validateDisbursement(command, isAccountTransfer, loanId);
 
         Loan loan = loanAssembler.assembleFrom(loanId);
+        loanMonetaryAuthorityService.requireDisbursement(executionContext, loan, command, true);
         if (loan.shouldCreateStandingInstructionAtDisbursement() && accountAssociationRepository.findByLoanIdAndType(loan.getId(),
                 AccountAssociationType.LINKED_ACCOUNT_ASSOCIATION.getValue()) != null) {
             org.apache.fineract.portfolio.account.domain.StandingInstructionDuesPolicy
@@ -387,6 +416,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 loan.setNetDisbursalAmount(netDisbursalAmount);
             }
             Money disburseAmount = loanDisbursementService.adjustDisburseAmount(loan, command, actualDisbursementDate);
+            loanMonetaryAuthorityService.require(executionContext, MonetaryAuthorityType.DISBURSEMENT, loan, disburseAmount.getAmount());
             Money amountToDisburse = disburseAmount.copy();
             boolean recalculateSchedule = amountBeforeAdjust.isNotEqualTo(loan.getPrincipal());
             final ExternalId txnExternalId = externalIdFactory.createFromCommand(command, LoanApiConstants.externalIdParameterName);
@@ -757,6 +787,25 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     @Override
     public Map<String, Object> bulkLoanDisbursal(final JsonCommand command, final CollectionSheetBulkDisbursalCommand bulkDisbursalCommand,
             Boolean isAccountTransfer) {
+        throw LoanCommandExecutionContext.untrustedOrigin();
+    }
+
+    @Override
+    public void validateBulkDisbursementAuthority(JsonCommand command, CollectionSheetBulkDisbursalCommand bulkDisbursalCommand,
+            LoanCommandExecutionContext executionContext) {
+        if (bulkDisbursalCommand.getDisburseTransactions() != null) {
+            for (SingleDisbursalCommand disbursal : bulkDisbursalCommand.getDisburseTransactions()) {
+                Loan loan = loanAssembler.assembleFrom(disbursal.getLoanId());
+                loanMonetaryAuthorityService.requireDisbursement(executionContext, loan, command, false);
+            }
+        }
+    }
+
+    @Transactional
+    @Override
+    public Map<String, Object> bulkLoanDisbursal(JsonCommand command, CollectionSheetBulkDisbursalCommand bulkDisbursalCommand,
+            Boolean isAccountTransfer, LoanCommandExecutionContext executionContext) {
+        validateBulkDisbursementAuthority(command, bulkDisbursalCommand, executionContext);
         final AppUser currentUser = getAppUserIfPresent();
 
         final SingleDisbursalCommand[] disbursalCommand = bulkDisbursalCommand.getDisburseTransactions();
@@ -770,6 +819,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
         for (final SingleDisbursalCommand singleLoanDisbursalCommand : disbursalCommand) {
             Loan loan = this.loanAssembler.assembleFrom(singleLoanDisbursalCommand.getLoanId());
+            loanMonetaryAuthorityService.requireDisbursement(executionContext, loan, command, false);
             final LocalDate actualDisbursementDate = command.localDateValueOfParameterNamed("actualDisbursementDate");
 
             // validate ActualDisbursement Date Against Expected Disbursement
@@ -794,6 +844,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             if (canDisburse(loan)) {
                 Money amountBeforeAdjust = loan.getPrincipal();
                 Money disburseAmount = loanDisbursementService.adjustDisburseAmount(loan, command, actualDisbursementDate);
+                loanMonetaryAuthorityService.require(executionContext, MonetaryAuthorityType.DISBURSEMENT, loan,
+                        disburseAmount.getAmount());
                 boolean recalculateSchedule = amountBeforeAdjust.isNotEqualTo(loan.getPrincipal());
                 final ExternalId txnExternalId = externalIdFactory.createFromCommand(command, LoanApiConstants.externalIdParameterName);
                 final long termsBefore = loan.getTermsCount();

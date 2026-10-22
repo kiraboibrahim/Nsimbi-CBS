@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.portfolio.loanaccount.service;
 
+import org.apache.fineract.commands.domain.LoanCommandExecutionContext;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 
@@ -31,6 +32,8 @@ public interface LoanApplicationWritePlatformService {
 
     CommandProcessingResult approveApplication(Long loanId, JsonCommand command);
 
+    CommandProcessingResult approveApplication(Long loanId, JsonCommand command, LoanCommandExecutionContext executionContext);
+
     CommandProcessingResult undoApplicationApproval(Long loanId, JsonCommand command);
 
     CommandProcessingResult rejectApplication(Long loanId, JsonCommand command);
@@ -38,6 +41,8 @@ public interface LoanApplicationWritePlatformService {
     CommandProcessingResult applicantWithdrawsFromApplication(Long loanId, JsonCommand command);
 
     CommandProcessingResult approveGLIMLoanAppication(Long loanId, JsonCommand command);
+
+    CommandProcessingResult approveGLIMLoanAppication(Long loanId, JsonCommand command, LoanCommandExecutionContext executionContext);
 
     CommandProcessingResult undoGLIMLoanApplicationApproval(Long loanId, JsonCommand command);
 
